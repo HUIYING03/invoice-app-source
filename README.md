@@ -123,6 +123,18 @@ The app is a static site, so it can go anywhere. On Vercel:
 
 On a phone, open the URL and use **Add to Home Screen** for an app icon.
 
+### Changing the icon
+
+`src/app/icon.svg` is the source. The PNGs beside it and under `public/` are
+rendered from it, so after editing the SVG they must be regenerated — a
+headless browser screenshotting the inlined SVG at 180, 192 and 512, plus a
+512 "maskable" version at 62% scale. Android crops icons to its own shape
+(circle, squircle, teardrop), and the smaller artwork keeps the receipt clear
+of that crop.
+
+Ask, and the regeneration is a one-liner; there is no build step for it because
+it changes about once a year.
+
 ## How it is put together
 
 ```
