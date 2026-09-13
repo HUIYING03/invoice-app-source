@@ -7,7 +7,7 @@ import type { InvoiceDoc, LineItem } from "./types";
  */
 function normalizeItem(item: LineItem): LineItem {
   if (item.pricing === "lump" || item.pricing === "unit") return item;
-  // `pricing` predates nothing else, so infer the mode the user had chosen
+  // Written before `pricing` existed: recover the mode the user had chosen
   // from whichever fields they filled in.
   const looksPerUnit = item.quantity?.trim() !== "" || item.unitPrice?.trim() !== "";
   return { ...item, pricing: looksPerUnit ? "unit" : "lump" };

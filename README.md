@@ -151,6 +151,9 @@ firestore.rules           Who may read and write; the only access control
 tests/                    Unit tests for lib/
 ```
 
+See [docs/ENGINEERING-NOTES.md](docs/ENGINEERING-NOTES.md) for why the code is
+shaped this way — the decisions, the trade-offs, and what the bugs taught.
+
 Built with Next.js (static export), React, Tailwind CSS and Firebase. The whole
 app runs in the browser — there is no server of our own, which is why the
 Firestore rules carry the weight.
