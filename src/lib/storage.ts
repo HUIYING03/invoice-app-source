@@ -1,5 +1,7 @@
 import { DEFAULT_COMPANY, type CompanyProfile, type InvoiceDoc, type LineItem } from "./types";
 import { todayISO } from "./dates";
+import { normalizeDocument } from "./normalize";
+import { suggestNumberFrom } from "./numbering";
 
 /**
  * All persistence goes through this module. It is deliberately the only place
@@ -73,25 +75,12 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
   };
 }
 
-/**
- * Fills in `pricing` for lines saved before it existed, inferring the mode the
- * user had actually chosen from whichever fields they filled in.
- */
-function migrateItem(item: LineItem): LineItem {
-  if (item.pricing === "lump" || item.pricing === "unit") return item;
-  const looksPerUnit = item.quantity?.trim() !== "" || item.unitPrice?.trim() !== "";
-  return { ...item, pricing: looksPerUnit ? "unit" : "lump" };
-}
-
 export function loadDocuments(): InvoiceDoc[] {
   const docs = readJSON<InvoiceDoc[]>(DOCS_KEY, []);
   if (!Array.isArray(docs)) return [];
   return docs
     .filter((doc): doc is InvoiceDoc => !!doc && typeof doc.id === "string")
-    .map((doc) => ({
-      ...doc,
-      items: Array.isArray(doc.items) ? doc.items.map(migrateItem) : [],
-    }))
+    .map(normalizeDocument)
     .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
@@ -139,19 +128,9 @@ export function saveCompany(profile: CompanyProfile): void {
   writeJSON(COMPANY_KEY, profile);
 }
 
-/**
- * Suggest the next running number for a year, e.g. "024/2026".
- * Existing numbers that do not follow the NNN/YYYY shape are ignored.
- */
+/** Local-data variant of {@link suggestNumberFrom}, kept for the backup path. */
 export function suggestNumber(kind: InvoiceDoc["kind"], date: string, excludeId?: string): string {
-  const year = (date || todayISO()).slice(0, 4);
-  const used = loadDocuments()
-    .filter((doc) => doc.kind === kind && doc.id !== excludeId)
-    .map((doc) => /^(\d+)\/(\d{4})$/.exec(doc.number.trim()))
-    .filter((match): match is RegExpExecArray => !!match && match[2] === year)
-    .map((match) => parseInt(match[1], 10));
-  const next = used.length ? Math.max(...used) + 1 : 1;
-  return `${String(next).padStart(3, "0")}/${year}`;
+  return suggestNumberFrom(loadDocuments(), kind, date, excludeId);
 }
 
 export interface BackupFile {
@@ -162,45 +141,27 @@ export interface BackupFile {
   documents: InvoiceDoc[];
 }
 
-export function exportBackup(): BackupFile {
+/** Build a backup from data already in hand, rather than from this device. */
+export function buildBackup(documents: InvoiceDoc[], company: CompanyProfile): BackupFile {
   return {
     app: "cnwong-invoice",
     version: 1,
     exportedAt: new Date().toISOString(),
-    company: loadCompany(),
-    documents: loadDocuments(),
+    company,
+    documents,
   };
 }
 
-export interface ImportResult {
-  added: number;
-  updated: number;
-}
-
-/** Merge a backup into this device. Documents are matched by id; newest wins. */
-export function importBackup(raw: unknown): ImportResult {
+/** Validate a backup file and hand back what it holds. */
+export function parseBackup(raw: unknown): { documents: InvoiceDoc[]; company: CompanyProfile | null } {
   const backup = raw as Partial<BackupFile>;
   if (!backup || backup.app !== "cnwong-invoice" || !Array.isArray(backup.documents)) {
     throw new Error("That file is not a backup from this app.");
   }
-  const existing = loadDocuments();
-  const byId = new Map(existing.map((doc) => [doc.id, doc]));
-  let added = 0;
-  let updated = 0;
-
-  for (const incoming of backup.documents) {
-    if (!incoming || typeof incoming.id !== "string") continue;
-    const current = byId.get(incoming.id);
-    if (!current) {
-      byId.set(incoming.id, incoming);
-      added += 1;
-    } else if ((incoming.updatedAt || "") > (current.updatedAt || "")) {
-      byId.set(incoming.id, incoming);
-      updated += 1;
-    }
-  }
-
-  writeJSON(DOCS_KEY, Array.from(byId.values()));
-  if (backup.company) saveCompany({ ...DEFAULT_COMPANY, ...backup.company });
-  return { added, updated };
+  return {
+    documents: backup.documents
+      .filter((doc): doc is InvoiceDoc => !!doc && typeof doc.id === "string")
+      .map(normalizeDocument),
+    company: backup.company ? { ...DEFAULT_COMPANY, ...backup.company } : null,
+  };
 }

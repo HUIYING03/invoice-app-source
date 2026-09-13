@@ -21,6 +21,8 @@ formatting and the arithmetic itself.
   unpaid, with a running total of what is still owed.
 - **See the money** on a dashboard: invoiced, collected, outstanding and quoted;
   a six-month trend; biggest clients; averages.
+- **Share one list.** Both people sign in to the same account, so a job typed on
+  the phone appears on the computer at once, with no file passing in between.
 
 The totals, the amount in words (`Ringgit Malaysia: Eight Thousand Five Hundred
 Fifty Only`) and the payment note are all generated, so they cannot drift out of
@@ -63,25 +65,63 @@ For everyday use, prefer the real build over the dev server. `npm run build`
 produces `out/`, a plain static site that none of this applies to — serve it on
 the network, or deploy it and skip the laptop entirely.
 
-## Deploying
-
-`npm run build` produces a plain static site in `out/`. There is no server and
-no database, so it can be hosted free on Vercel, Netlify, GitHub Pages or any
-static host. On a phone, open the site and use **Add to Home Screen** to get an
-app icon.
-
 ## Where the data lives
 
-Jobs are saved in the browser's `localStorage` **on the device that created
-them**. Nothing is uploaded anywhere.
+Jobs live in **Firebase Firestore** under a single shared login, so whatever is
+typed on the phone shows up on the computer straight away, and the other way
+round. Firestore's offline cache means the app still works with no signal and
+catches up when the connection returns.
 
-That means a job written on the phone will not appear on the computer by itself.
-**Setup → Backup** exports a JSON file covering every job and the company
-details, and importing it on another device merges the two — matching jobs by
-id and keeping whichever copy was edited most recently.
+`src/lib/db.ts` is the only file that talks to Firestore. `src/lib/storage.ts`
+still reads the browser storage used before there was an account, so those jobs
+can be moved across once from **Setup → Jobs still on this device**.
 
-If shared, always-in-sync data is wanted later, `src/lib/storage.ts` is the only
-file that touches storage; swapping it for an API client is the whole change.
+### Setting up the database
+
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. **Build → Firestore Database → Create database.** Pick a region near you
+   (`asia-southeast1` for Malaysia). Start in production mode; the rules below
+   replace whatever it starts with.
+3. **Build → Authentication → Get started → Email/Password → Enable.**
+   Then **Users → Add user** and create the one shared login your parents will
+   both use.
+4. **Project settings → General → Your apps → Web (`</>`)**. Register the app
+   and copy the config values.
+5. `cp .env.example .env.local` and paste those values in.
+6. **Firestore Database → Rules**, paste the contents of `firestore.rules`, and
+   press Publish. Without this step the database is either wide open or shut.
+
+The values in `.env.local` are not secrets — a Firebase web config is meant to
+ship in the browser bundle. What protects the data is `firestore.rules` plus
+signing in. Verified behaviour: signed out, every read and write is denied;
+signed in, only `documents` and `settings` are reachable.
+
+### Trying it without touching real data
+
+With Java 21+ and the Firebase CLI:
+
+```bash
+firebase emulators:start --project demo-invoice --only auth,firestore
+```
+
+Set `NEXT_PUBLIC_FIREBASE_EMULATOR=1` in `.env.local` and the app talks to the
+emulators instead of the real project. Remember to remove that line afterwards.
+
+## Deploying
+
+The app is a static site, so it can go anywhere. On Vercel:
+
+1. Push this repo to GitHub.
+2. [vercel.com/new](https://vercel.com/new) → import the repo. The framework is
+   detected; no build settings need changing.
+3. **Settings → Environment Variables**: add the same six
+   `NEXT_PUBLIC_FIREBASE_*` values from `.env.local`. Do **not** add
+   `NEXT_PUBLIC_FIREBASE_EMULATOR`.
+4. Deploy. Every later `git push` redeploys on its own.
+5. Back in Firebase, **Authentication → Settings → Authorised domains**, add the
+   Vercel domain, or sign-in will be refused there.
+
+On a phone, open the URL and use **Add to Home Screen** for an app icon.
 
 ## How it is put together
 
@@ -93,18 +133,27 @@ src/
     dashboard/            Revenue and client analytics
     settings/             Company details, currency, backup
   components/
+    DataProvider.tsx      Auth state and the live view of Firestore
+    AuthGate.tsx          Sign-in screen; everything else sits behind it
     DocumentSheet.tsx     The printable A4 document
     SheetScaler.tsx       Fits the fixed-width sheet onto small screens
     ItemEditor.tsx        One line of work
   lib/
+    firebase.ts           SDK setup, offline cache, emulator switch
+    db.ts                 Firestore reads, writes and live subscriptions
     money.ts              Line/document totals, formatting, number-to-words
     analytics.ts          Dashboard roll-ups
-    storage.ts            Persistence, numbering, backup import/export
+    numbering.ts          Next running number for a year
+    normalize.ts          Fills in fields added after a document was written
+    storage.ts            Pre-account browser storage, and backup files
     dates.ts              Date formatting and month buckets
+firestore.rules           Who may read and write; the only access control
 tests/                    Unit tests for lib/
 ```
 
-Built with Next.js (static export), React and Tailwind CSS.
+Built with Next.js (static export), React, Tailwind CSS and Firebase. The whole
+app runs in the browser — there is no server of our own, which is why the
+Firestore rules carry the weight.
 
 ### Notes on the printed page
 

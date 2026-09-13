@@ -7,8 +7,8 @@ import {
   deleteDocument,
   duplicateDocument,
   emptyDocument,
-  exportBackup,
-  importBackup,
+  buildBackup,
+  parseBackup,
   loadCompany,
   loadDocument,
   loadDocuments,
@@ -103,48 +103,54 @@ test("company details round-trip and fall back to the defaults", () => {
   assert.equal(loadCompany().name, "CN WONG RENOVATION COMPANY");
 });
 
-test("a backup exported on one device imports onto another", () => {
+test("a backup carries the jobs and the company details", () => {
+  const saved = make("2026-08-04", "023/2026", "8550", "Lam Soon");
+  const backup = buildBackup(loadDocuments(), loadCompany());
+
+  assert.equal(backup.app, "cnwong-invoice");
+  assert.equal(backup.documents.length, 1);
+  assert.equal(backup.documents[0].id, saved.id);
+  assert.equal(backup.company.name, "CN WONG RENOVATION COMPANY");
+});
+
+test("a backup round-trips through parseBackup", () => {
   make("2026-08-04", "023/2026", "8550", "Lam Soon");
-  const backup = exportBackup();
+  const backup = buildBackup(loadDocuments(), loadCompany());
 
-  storage.clear();
-  const result = importBackup(JSON.parse(JSON.stringify(backup)));
-
-  assert.equal(result.added, 1);
-  assert.equal(result.updated, 0);
-  assert.equal(loadDocuments()[0].client.company, "Lam Soon");
+  const parsed = parseBackup(JSON.parse(JSON.stringify(backup)));
+  assert.equal(parsed.documents.length, 1);
+  assert.equal(parsed.documents[0].client.company, "Lam Soon");
+  assert.equal(parsed.company?.currencyCode, "RM");
 });
 
-test("importing keeps the newer copy of a document that exists on both", () => {
-  const saved = make("2026-08-04", "023/2026", "8550", "Original");
-  const backup = exportBackup();
-  backup.documents[0] = {
-    ...saved,
-    client: { ...saved.client, company: "Newer" },
-    updatedAt: "2099-01-01T00:00:00.000Z",
-  };
+test("parseBackup fills in fields added after the file was written", () => {
+  const backup = buildBackup([], loadCompany()) as unknown as Record<string, unknown>;
+  backup.documents = [
+    {
+      id: "legacy",
+      kind: "invoice",
+      number: "001/2026",
+      date: "2026-08-04",
+      client: { company: "Old", addressLine1: "", addressLine2: "", addressLine3: "" },
+      jobTitle: "",
+      items: [
+        { id: "a", title: "Rate", description: "", unit: "ft", quantity: "65", unitPrice: "18.30", amount: "" },
+      ],
+      notes: "",
+      status: "draft",
+      paidDate: "",
+      createdAt: "",
+      updatedAt: "",
+    },
+  ];
 
-  const result = importBackup(JSON.parse(JSON.stringify(backup)));
-  assert.equal(result.updated, 1);
-  assert.equal(loadDocument(saved.id)?.client.company, "Newer");
+  const parsed = parseBackup(backup);
+  assert.equal(parsed.documents[0].items[0].pricing, "unit");
 });
 
-test("importing does not overwrite a document that is newer here", () => {
-  const saved = make("2026-08-04", "023/2026", "8550", "Mine");
-  const backup = exportBackup();
-  backup.documents[0] = {
-    ...saved,
-    client: { ...saved.client, company: "Stale" },
-    updatedAt: "2000-01-01T00:00:00.000Z",
-  };
-
-  importBackup(JSON.parse(JSON.stringify(backup)));
-  assert.equal(loadDocument(saved.id)?.client.company, "Mine");
-});
-
-test("importing a file from somewhere else is rejected", () => {
-  assert.throws(() => importBackup({ hello: "world" }), /not a backup/);
-  assert.throws(() => importBackup(null), /not a backup/);
+test("a file from somewhere else is rejected", () => {
+  assert.throws(() => parseBackup({ hello: "world" }), /not a backup/);
+  assert.throws(() => parseBackup(null), /not a backup/);
 });
 
 test("lines saved before pricing existed get the mode they were using", () => {

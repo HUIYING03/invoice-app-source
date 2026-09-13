@@ -1,25 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import AppHeader from "@/components/AppHeader";
 import { Card, EmptyState } from "@/components/ui";
 import { formatMonthKey } from "@/lib/dates";
 import { formatCurrency, formatMoney } from "@/lib/money";
 import { summarise } from "@/lib/analytics";
-import { loadCompany, loadDocuments } from "@/lib/storage";
-import { DEFAULT_COMPANY, type CompanyProfile, type InvoiceDoc } from "@/lib/types";
+import { useData } from "@/components/DataProvider";
 
 const MONTHS_SHOWN = 6;
 
 export default function DashboardPage() {
-  const [docs, setDocs] = useState<InvoiceDoc[] | null>(null);
-  const [company, setCompany] = useState<CompanyProfile>(DEFAULT_COMPANY);
-
-  useEffect(() => {
-    setDocs(loadDocuments());
-    setCompany(loadCompany());
-  }, []);
+  const { documents, company, loading } = useData();
+  const docs = loading ? null : documents;
 
   const summary = useMemo(() => summarise(docs ?? [], MONTHS_SHOWN), [docs]);
   const code = company.currencyCode;

@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// The whole app runs in the browser, so these rules are the only thing
+// standing between the internet and your invoices. Everything is closed
+// unless someone is signed in with the shared account.
+//
+// Deploy from the Firebase console: Firestore Database -> Rules -> paste -> Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // One invoice or quotation per document.
+    match /documents/{documentId} {
+      allow read, write: if signedIn();
+    }
+
+    // Company profile, currency, bank details.
+    match /settings/{settingId} {
+      allow read, write: if signedIn();
+    }
+
+    // Anything not named above stays unreachable.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

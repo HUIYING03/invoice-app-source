@@ -10,17 +10,10 @@ import ItemEditor from "@/components/ItemEditor";
 import { Card, Field, STATUS_LABELS, TextArea, TextInput } from "@/components/ui";
 import { documentTotal, formatCurrency } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
-import {
-  deleteDocument,
-  duplicateDocument,
-  emptyDocument,
-  emptyItem,
-  loadCompany,
-  loadDocument,
-  saveDocument,
-  suggestNumber,
-} from "@/lib/storage";
-import { DEFAULT_COMPANY, type CompanyProfile, type DocKind, type DocStatus, type InvoiceDoc, type LineItem } from "@/lib/types";
+import { useData } from "@/components/DataProvider";
+import { emptyDocument, emptyItem, newId } from "@/lib/storage";
+import { suggestNumberFrom } from "@/lib/numbering";
+import type { CompanyProfile, DocKind, DocStatus, InvoiceDoc, LineItem } from "@/lib/types";
 
 type Tab = "edit" | "preview";
 
@@ -30,8 +23,14 @@ export default function EditorScreen() {
   const idParam = params.get("id");
   const newKind = params.get("new") as DocKind | null;
 
+  const {
+    documents,
+    company,
+    loading,
+    saveDocument: persistDocument,
+    deleteDocument: removeDocument,
+  } = useData();
   const [doc, setDoc] = useState<InvoiceDoc | null>(null);
-  const [company, setCompany] = useState<CompanyProfile>(DEFAULT_COMPANY);
   const [tab, setTab] = useState<Tab>("edit");
   const [dirty, setDirty] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -48,21 +47,23 @@ export default function EditorScreen() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
-  // Load an existing document, or start a new one with a suggested number.
+  // Seed the form once: an existing job, or a new one with the next number.
+  // Later updates from other devices must not clobber what is being typed, so
+  // this deliberately runs only while `doc` is still empty.
   useEffect(() => {
-    setCompany(loadCompany());
+    if (doc || loading) return;
     if (idParam) {
-      const found = loadDocument(idParam);
+      const found = documents.find((candidate) => candidate.id === idParam);
       if (found) setDoc(found);
       else setNotFound(true);
       return;
     }
     const kind: DocKind = newKind === "quotation" ? "quotation" : "invoice";
     const fresh = emptyDocument(kind);
-    fresh.number = suggestNumber(kind, fresh.date);
+    fresh.number = suggestNumberFrom(documents, kind, fresh.date);
     setDoc(fresh);
     setDirty(true);
-  }, [idParam, newKind]);
+  }, [doc, loading, documents, idParam, newKind]);
 
   const total = useMemo(() => (doc ? documentTotal(doc.items) : 0), [doc]);
 
@@ -97,18 +98,23 @@ export default function EditorScreen() {
     setDirty(true);
   }, []);
 
-  const handleSave = useCallback(() => {
-    if (!doc) return;
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    if (!doc || saving) return;
+    setSaving(true);
     try {
-      const saved = saveDocument(doc);
+      const saved = await persistDocument(doc);
       setDoc(saved);
       setDirty(false);
       showToast("Saved");
       if (!idParam) router.replace(`/editor?id=${saved.id}`);
-    } catch {
-      showToast("Could not save — this device's storage is full.");
+    } catch (cause) {
+      showToast(cause instanceof Error ? `Could not save: ${cause.message}` : "Could not save.");
+    } finally {
+      setSaving(false);
     }
-  }, [doc, idParam, router, showToast]);
+  }, [doc, saving, persistDocument, idParam, router, showToast]);
 
   // Warn before losing unsaved edits to a refresh or a closed tab.
   useEffect(() => {
@@ -151,11 +157,12 @@ export default function EditorScreen() {
           <button
             type="button"
             onClick={handleSave}
-            className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95 ${
+            disabled={saving}
+            className={`rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95 disabled:opacity-60 ${
               dirty ? "bg-brand text-white" : "bg-canvas text-muted"
             }`}
           >
-            {dirty ? "Save" : "Saved"}
+            {saving ? "Saving…" : dirty ? "Save" : "Saved"}
           </button>
         }
       />
@@ -192,18 +199,38 @@ export default function EditorScreen() {
             onRemoveItem={(itemId) =>
               update({ items: doc.items.filter((item) => item.id !== itemId) })
             }
-            onDuplicate={() => {
+            onDuplicate={async () => {
               if (dirty) {
                 showToast("Save first, then make a copy.");
                 return;
               }
-              const copy = duplicateDocument(doc.id);
-              if (copy) router.push(`/editor?id=${copy.id}`);
+              const now = new Date().toISOString();
+              const copy: InvoiceDoc = {
+                ...doc,
+                id: newId(),
+                number: suggestNumberFrom(documents, doc.kind, todayISO()),
+                date: todayISO(),
+                status: "draft",
+                paidDate: "",
+                items: doc.items.map((item) => ({ ...item, id: newId() })),
+                createdAt: now,
+                updatedAt: now,
+              };
+              try {
+                await persistDocument(copy);
+                router.push(`/editor?id=${copy.id}`);
+              } catch {
+                showToast("Could not make a copy.");
+              }
             }}
-            onDelete={() => {
+            onDelete={async () => {
               if (!window.confirm("Delete this job for good?")) return;
-              deleteDocument(doc.id);
-              router.push("/");
+              try {
+                await removeDocument(doc.id);
+                router.push("/");
+              } catch {
+                showToast("Could not delete.");
+              }
             }}
           />
         ) : (

@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AppHeader from "@/components/AppHeader";
 import { Card, EmptyState, StatusPill, TextInput } from "@/components/ui";
 import { formatShortDate } from "@/lib/dates";
 import { documentTotal, formatCurrency } from "@/lib/money";
-import { loadCompany, loadDocuments } from "@/lib/storage";
-import { DEFAULT_COMPANY, type CompanyProfile, type InvoiceDoc } from "@/lib/types";
+import { useData } from "@/components/DataProvider";
 
 type Filter = "all" | "invoice" | "quotation" | "unpaid";
 
@@ -19,15 +18,10 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 ];
 
 export default function JobsPage() {
-  const [docs, setDocs] = useState<InvoiceDoc[] | null>(null);
-  const [company, setCompany] = useState<CompanyProfile>(DEFAULT_COMPANY);
+  const { documents, company, loading, error } = useData();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    setDocs(loadDocuments());
-    setCompany(loadCompany());
-  }, []);
+  const docs = loading ? null : documents;
 
   const visible = useMemo(() => {
     if (!docs) return [];
@@ -67,7 +61,11 @@ export default function JobsPage() {
       />
 
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
-        {docs === null ? (
+        {error ? (
+          <Card className="!border-red-200 !bg-red-50">
+            <p className="text-sm font-medium text-red-700">{error}</p>
+          </Card>
+        ) : docs === null ? (
           <p className="py-10 text-center text-sm text-muted">Loading…</p>
         ) : docs.length === 0 ? (
           <EmptyState

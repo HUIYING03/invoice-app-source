@@ -2,29 +2,34 @@
 
 import { useEffect, useRef, useState } from "react";
 import AppHeader from "@/components/AppHeader";
+import { useData } from "@/components/DataProvider";
 import { Card, Field, TextInput } from "@/components/ui";
-import { exportBackup, importBackup, loadCompany, loadDocuments, saveCompany } from "@/lib/storage";
-import { DEFAULT_COMPANY, type CompanyProfile } from "@/lib/types";
+import { uploadDocuments } from "@/lib/db";
+import { buildBackup, loadDocuments as loadDeviceDocuments, parseBackup } from "@/lib/storage";
+import type { CompanyProfile } from "@/lib/types";
 
 export default function SettingsPage() {
-  const [company, setCompany] = useState<CompanyProfile>(DEFAULT_COMPANY);
-  const [docCount, setDocCount] = useState(0);
+  const { company, documents, saveCompany, user, signOutNow } = useData();
+  const [draft, setDraft] = useState<CompanyProfile>(company);
+  const [deviceCount, setDeviceCount] = useState(0);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setCompany(loadCompany());
-    setDocCount(loadDocuments().length);
-  }, []);
+  // Keep the form in step with Firestore, but never overwrite a field mid-edit.
+  useEffect(() => setDraft(company), [company]);
+
+  // Jobs created before this device had an account, still in browser storage.
+  useEffect(() => setDeviceCount(loadDeviceDocuments().length), []);
 
   const update = (patch: Partial<CompanyProfile>) => {
-    const next = { ...company, ...patch };
-    setCompany(next);
-    saveCompany(next);
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    void saveCompany(next).catch(() => setMessage("Could not save company details."));
   };
 
   const handleExport = () => {
-    const backup = exportBackup();
+    const backup = buildBackup(documents, company);
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -34,36 +39,54 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = async (file: File) => {
+  const runTask = async (task: () => Promise<string>) => {
+    setBusy(true);
+    setMessage("");
     try {
-      const result = importBackup(JSON.parse(await file.text()));
-      setCompany(loadCompany());
-      setDocCount(loadDocuments().length);
-      setMessage(`Added ${result.added}, updated ${result.updated}.`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "That file could not be read.");
+      setMessage(await task());
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "That did not work.");
+    } finally {
+      setBusy(false);
     }
   };
 
+  const handleImport = (file: File) =>
+    runTask(async () => {
+      const { documents: incoming, company: incomingCompany } = parseBackup(JSON.parse(await file.text()));
+      const added = await uploadDocuments(incoming);
+      if (incomingCompany) await saveCompany(incomingCompany);
+      return added ? `Added ${added} job${added === 1 ? "" : "s"}.` : "Nothing new to add.";
+    });
+
+  const handleUploadDevice = () =>
+    runTask(async () => {
+      const added = await uploadDocuments(loadDeviceDocuments());
+      setDeviceCount(loadDeviceDocuments().length);
+      return added
+        ? `Moved ${added} job${added === 1 ? "" : "s"} into the shared account.`
+        : "Those jobs are already in the account.";
+    });
+
   return (
     <>
-      <AppHeader title="Setup" subtitle="Your company details" />
+      <AppHeader title="Setup" subtitle={user?.email ?? undefined} />
 
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
         <Card title="Printed at the top">
           <div className="space-y-3">
             <Field label="Company name">
-              <TextInput value={company.name} onChange={(e) => update({ name: e.target.value })} />
+              <TextInput value={draft.name} onChange={(e) => update({ name: e.target.value })} />
             </Field>
             <Field label="Address line 1">
               <TextInput
-                value={company.addressLine1}
+                value={draft.addressLine1}
                 onChange={(e) => update({ addressLine1: e.target.value })}
               />
             </Field>
             <Field label="Address line 2">
               <TextInput
-                value={company.addressLine2}
+                value={draft.addressLine2}
                 onChange={(e) => update({ addressLine2: e.target.value })}
                 placeholder="(optional)"
               />
@@ -71,7 +94,7 @@ export default function SettingsPage() {
             <Field label="Phone">
               <TextInput
                 inputMode="tel"
-                value={company.phone}
+                value={draft.phone}
                 onChange={(e) => update({ phone: e.target.value })}
               />
             </Field>
@@ -81,21 +104,18 @@ export default function SettingsPage() {
         <Card title="Payment note">
           <div className="space-y-3">
             <Field label="Bank">
-              <TextInput
-                value={company.bankName}
-                onChange={(e) => update({ bankName: e.target.value })}
-              />
+              <TextInput value={draft.bankName} onChange={(e) => update({ bankName: e.target.value })} />
             </Field>
             <Field label="Account number">
               <TextInput
                 inputMode="numeric"
-                value={company.bankAccount}
+                value={draft.bankAccount}
                 onChange={(e) => update({ bankAccount: e.target.value })}
               />
             </Field>
             <Field label="Signature name" hint="Prints on the signing line at the bottom.">
               <TextInput
-                value={company.signatureName}
+                value={draft.signatureName}
                 onChange={(e) => update({ signatureName: e.target.value })}
               />
             </Field>
@@ -106,26 +126,44 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Symbol">
               <TextInput
-                value={company.currencyCode}
+                value={draft.currencyCode}
                 onChange={(e) => update({ currencyCode: e.target.value })}
               />
             </Field>
             <Field label="In words">
               <TextInput
-                value={company.currencyWord}
+                value={draft.currencyWord}
                 onChange={(e) => update({ currencyWord: e.target.value })}
               />
             </Field>
           </div>
         </Card>
 
+        {deviceCount > 0 && (
+          <Card title="Jobs still on this device">
+            <p className="text-sm text-muted">
+              {deviceCount} job{deviceCount === 1 ? "" : "s"} {deviceCount === 1 ? "was" : "were"}{" "}
+              saved here before you signed in. Move {deviceCount === 1 ? "it" : "them"} into the
+              account so both of you can see {deviceCount === 1 ? "it" : "them"}.
+            </p>
+            <button
+              type="button"
+              onClick={handleUploadDevice}
+              disabled={busy}
+              className="mt-4 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Working…" : "Move them into the account"}
+            </button>
+          </Card>
+        )}
+
         <Card title="Backup">
           <p className="text-sm text-muted">
-            Jobs are saved on this device only. Export a backup file to keep a copy, or to move
-            jobs between the phone and the computer.
+            Jobs live in the shared account, so both phone and computer already see the same list.
+            A backup file is a copy you keep yourself.
           </p>
           <p className="mt-2 text-sm font-medium">
-            {docCount} {docCount === 1 ? "job" : "jobs"} saved here.
+            {documents.length} job{documents.length === 1 ? "" : "s"} in the account.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
@@ -138,7 +176,8 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
-              className="flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm font-semibold"
+              disabled={busy}
+              className="flex-1 rounded-xl border border-line bg-white px-4 py-3 text-sm font-semibold disabled:opacity-60"
             >
               Import backup
             </button>
@@ -155,6 +194,17 @@ export default function SettingsPage() {
             }}
           />
           {message && <p className="mt-3 text-sm font-medium text-good">{message}</p>}
+        </Card>
+
+        <Card title="Account">
+          <p className="text-sm text-muted">Signed in as {user?.email}.</p>
+          <button
+            type="button"
+            onClick={() => void signOutNow()}
+            className="mt-4 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm font-semibold"
+          >
+            Sign out
+          </button>
         </Card>
       </main>
     </>

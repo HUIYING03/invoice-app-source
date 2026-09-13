@@ -5,3 +5,7 @@ out/
 next-env.d.ts
 .DS_Store
 .env*.local
+
+# Firebase emulator
+*-debug.log
+.firebase/
