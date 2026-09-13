@@ -148,6 +148,28 @@ test("parseBackup fills in fields added after the file was written", () => {
   assert.equal(parsed.documents[0].items[0].pricing, "unit");
 });
 
+test("documents written before the bin existed load as not deleted", () => {
+  const backup = buildBackup([], loadCompany()) as unknown as Record<string, unknown>;
+  backup.documents = [
+    {
+      id: "old",
+      kind: "invoice",
+      number: "001/2026",
+      date: "2026-08-04",
+      client: { company: "Old", addressLine1: "", addressLine2: "", addressLine3: "" },
+      jobTitle: "",
+      items: [],
+      notes: "",
+      status: "draft",
+      paidDate: "",
+      createdAt: "",
+      updatedAt: "",
+      // no deletedAt
+    },
+  ];
+  assert.equal(parseBackup(backup).documents[0].deletedAt, "");
+});
+
 test("a file from somewhere else is rejected", () => {
   assert.throws(() => parseBackup({ hello: "world" }), /not a backup/);
   assert.throws(() => parseBackup(null), /not a backup/);

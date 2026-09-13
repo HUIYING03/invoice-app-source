@@ -23,6 +23,8 @@ formatting and the arithmetic itself.
   a six-month trend; biggest clients; averages.
 - **Share one list.** Both people sign in to the same account, so a job typed on
   the phone appears on the computer at once, with no file passing in between.
+- **Undo a deletion.** Deleting moves a job to a bin rather than destroying it,
+  and a snapshot of everything is saved each day the app is used.
 
 The totals, the amount in words (`Ringgit Malaysia: Eight Thousand Five Hundred
 Fifty Only`) and the payment note are all generated, so they cannot drift out of
@@ -75,6 +77,20 @@ catches up when the connection returns.
 `src/lib/db.ts` is the only file that talks to Firestore. `src/lib/storage.ts`
 still reads the browser storage used before there was an account, so those jobs
 can be moved across once from **Setup → Jobs still on this device**.
+
+### Keeping the data safe
+
+Three layers, weakest threat to worst:
+
+| Layer | Covers | Does not cover |
+| --- | --- | --- |
+| **Bin** (Setup) | a job deleted by mistake | losing the account |
+| **Daily snapshots** (Setup) | bulk mistakes, wanting an older state | losing the account |
+| **Export backup** (Setup) | losing the account or the project | anything you forget to export |
+
+The first two live inside the same Firebase project as the data they protect,
+so they are no help if the account itself is lost. The exported file is the only
+copy that leaves. Keep one somewhere else every few months.
 
 ### Setting up the database
 

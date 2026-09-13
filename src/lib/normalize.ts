@@ -16,6 +16,7 @@ function normalizeItem(item: LineItem): LineItem {
 export function normalizeDocument(doc: InvoiceDoc): InvoiceDoc {
   return {
     ...doc,
+    deletedAt: doc.deletedAt ?? "",
     items: Array.isArray(doc.items) ? doc.items.map(normalizeItem) : [],
   };
 }

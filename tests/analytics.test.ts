@@ -34,6 +34,7 @@ function doc(
     notes: "",
     status,
     paidDate: status === "paid" ? date : "",
+    deletedAt: "",
     createdAt: date,
     updatedAt: date,
   };

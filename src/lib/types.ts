@@ -62,6 +62,12 @@ export interface InvoiceDoc {
   status: DocStatus;
   /** ISO date the document was marked paid. Empty when unpaid. */
   paidDate: string;
+  /**
+   * ISO timestamp of when this was moved to the bin. Empty for live jobs.
+   * Deleting keeps the record so a mistake can be undone; only "delete
+   * forever" actually removes it.
+   */
+  deletedAt: string;
   createdAt: string;
   updatedAt: string;
 }

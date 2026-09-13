@@ -25,6 +25,7 @@ export default function EditorScreen() {
 
   const {
     documents,
+    allDocuments,
     company,
     loading,
     saveDocument: persistDocument,
@@ -60,7 +61,7 @@ export default function EditorScreen() {
     }
     const kind: DocKind = newKind === "quotation" ? "quotation" : "invoice";
     const fresh = emptyDocument(kind);
-    fresh.number = suggestNumberFrom(documents, kind, fresh.date);
+    fresh.number = suggestNumberFrom(allDocuments, kind, fresh.date);
     setDoc(fresh);
     setDirty(true);
   }, [doc, loading, documents, idParam, newKind]);
@@ -208,7 +209,7 @@ export default function EditorScreen() {
               const copy: InvoiceDoc = {
                 ...doc,
                 id: newId(),
-                number: suggestNumberFrom(documents, doc.kind, todayISO()),
+                number: suggestNumberFrom(allDocuments, doc.kind, todayISO()),
                 date: todayISO(),
                 status: "draft",
                 paidDate: "",
@@ -224,9 +225,9 @@ export default function EditorScreen() {
               }
             }}
             onDelete={async () => {
-              if (!window.confirm("Delete this job for good?")) return;
+              if (!window.confirm("Move this job to the bin? You can put it back from Setup.")) return;
               try {
-                await removeDocument(doc.id);
+                await removeDocument(doc);
                 router.push("/");
               } catch {
                 showToast("Could not delete.");

@@ -22,6 +22,13 @@ service cloud.firestore {
       allow read, write: if signedIn();
     }
 
+    // Monthly snapshots. Created and read by the app; never deleted from it,
+    // so a mistake in the app cannot destroy the copies it just made.
+    match /backups/{backupId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
     // Anything not named above stays unreachable.
     match /{document=**} {
       allow read, write: if false;

@@ -6,12 +6,22 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { firebaseConfigError, getFirebaseAuth } from "@/lib/firebase";
-import { putCompany, putDocument, removeDocument, subscribeCompany, subscribeDocuments } from "@/lib/db";
+import {
+  destroyDocument,
+  putCompany,
+  putDocument,
+  removeDocument,
+  restoreDocument,
+  saveDailyBackup,
+  subscribeCompany,
+  subscribeDocuments,
+} from "@/lib/db";
 import { DEFAULT_COMPANY, type CompanyProfile, type InvoiceDoc } from "@/lib/types";
 
 interface DataState {
@@ -21,12 +31,20 @@ interface DataState {
   configError: string | null;
   loading: boolean;
   error: string | null;
+  /** Live jobs, with anything in the bin filtered out. */
   documents: InvoiceDoc[];
+  /** Jobs in the bin, newest deletion first. */
+  deletedDocuments: InvoiceDoc[];
+  /** Everything, bin included — used for numbering so ids are never reused. */
+  allDocuments: InvoiceDoc[];
   company: CompanyProfile;
   signIn: (email: string, password: string) => Promise<void>;
   signOutNow: () => Promise<void>;
   saveDocument: (doc: InvoiceDoc) => Promise<InvoiceDoc>;
-  deleteDocument: (id: string) => Promise<void>;
+  /** Moves a job to the bin; reversible with restoreJob. */
+  deleteDocument: (doc: InvoiceDoc) => Promise<void>;
+  restoreJob: (doc: InvoiceDoc) => Promise<void>;
+  destroyJob: (id: string) => Promise<void>;
   saveCompany: (company: CompanyProfile) => Promise<void>;
 }
 
@@ -93,6 +111,18 @@ export default function DataProvider({ children }: { children: ReactNode }) {
     };
   }, [configError, user]);
 
+  // Snapshot today's data once per session, after the data has settled.
+  // A failure here must never interrupt the app, so it only logs.
+  const backupAttempted = useRef(false);
+  useEffect(() => {
+    if (configError || !user || loading || documents.length === 0) return;
+    if (backupAttempted.current) return;
+    backupAttempted.current = true;
+    saveDailyBackup(documents, company)   // includes binned jobs, deliberately
+      .then((id) => id && console.info(`Backup saved: ${id}`))
+      .catch((cause) => console.warn("Could not save the backup", cause));
+  }, [configError, user, loading, documents, company]);
+
   const signIn = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), password);
   }, []);
@@ -107,14 +137,28 @@ export default function DataProvider({ children }: { children: ReactNode }) {
     return saved;
   }, []);
 
-  const deleteDocument = useCallback(async (id: string) => {
-    await removeDocument(id);
+  const deleteDocument = useCallback(async (document: InvoiceDoc) => {
+    await removeDocument(document);
+  }, []);
+
+  const restoreJob = useCallback(async (document: InvoiceDoc) => {
+    await restoreDocument(document);
+  }, []);
+
+  const destroyJob = useCallback(async (id: string) => {
+    await destroyDocument(id);
   }, []);
 
   const saveCompany = useCallback(async (next: CompanyProfile) => {
     setCompany(next); // optimistic, so typing in Setup stays responsive
     await putCompany(next);
   }, []);
+
+  const live = useMemo(() => documents.filter((d) => !d.deletedAt), [documents]);
+  const binned = useMemo(
+    () => documents.filter((d) => !!d.deletedAt).sort((a, b) => b.deletedAt.localeCompare(a.deletedAt)),
+    [documents],
+  );
 
   const value = useMemo<DataState>(
     () => ({
@@ -123,15 +167,19 @@ export default function DataProvider({ children }: { children: ReactNode }) {
       configError,
       loading,
       error,
-      documents,
+      documents: live,
+      deletedDocuments: binned,
+      allDocuments: documents,
       company,
       signIn,
       signOutNow,
       saveDocument,
       deleteDocument,
+      restoreJob,
+      destroyJob,
       saveCompany,
     }),
-    [user, authResolved, configError, loading, error, documents, company, signIn, signOutNow, saveDocument, deleteDocument, saveCompany],
+    [user, authResolved, configError, loading, error, live, binned, documents, company, signIn, signOutNow, saveDocument, deleteDocument, restoreJob, destroyJob, saveCompany],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -4,15 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import AppHeader from "@/components/AppHeader";
 import { useData } from "@/components/DataProvider";
 import { Card, Field, TextInput } from "@/components/ui";
-import { uploadDocuments } from "@/lib/db";
+import { listBackups, restoreMissingFromBackup, uploadDocuments } from "@/lib/db";
 import { buildBackup, loadDocuments as loadDeviceDocuments, parseBackup } from "@/lib/storage";
+import { formatShortDate } from "@/lib/dates";
+import { documentTotal, formatCurrency } from "@/lib/money";
 import type { CompanyProfile } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { company, documents, saveCompany, user, signOutNow } = useData();
+  const { company, documents, deletedDocuments, saveCompany, restoreJob, destroyJob, user, signOutNow } = useData();
   const [draft, setDraft] = useState<CompanyProfile>(company);
   const [deviceCount, setDeviceCount] = useState(0);
   const [message, setMessage] = useState("");
+  const [snapshots, setSnapshots] = useState<Array<{ id: string; takenAt: string; documentCount: number }>>([]);
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -21,6 +24,12 @@ export default function SettingsPage() {
 
   // Jobs created before this device had an account, still in browser storage.
   useEffect(() => setDeviceCount(loadDeviceDocuments().length), []);
+
+  // Monthly snapshots. Reloaded after a restore so the list stays truthful.
+  const refreshSnapshots = () => {
+    void listBackups().then(setSnapshots).catch(() => setSnapshots([]));
+  };
+  useEffect(refreshSnapshots, [documents.length]);
 
   const update = (patch: Partial<CompanyProfile>) => {
     const next = { ...draft, ...patch };
@@ -194,6 +203,92 @@ export default function SettingsPage() {
             }}
           />
           {message && <p className="mt-3 text-sm font-medium text-good">{message}</p>}
+        </Card>
+
+        <Card title="Bin">
+          <p className="text-sm text-muted">
+            Deleted jobs are kept here rather than thrown away, so a mistake can be undone.
+          </p>
+          {deletedDocuments.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Nothing deleted.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line">
+              {deletedDocuments.map((job) => (
+                <li key={job.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{job.client.company || "(no client)"}</p>
+                    <p className="text-xs text-muted">
+                      {formatCurrency(documentTotal(job.items), company.currencyCode)} · deleted{" "}
+                      {formatShortDate(job.deletedAt.slice(0, 10))}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => runTask(async () => { await restoreJob(job); return "Put back."; })}
+                      className="rounded-lg border border-line px-3 py-2 text-xs font-semibold disabled:opacity-60"
+                    >
+                      Put back
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        if (!window.confirm("Delete this for good? This cannot be undone.")) return;
+                        void runTask(async () => { await destroyJob(job.id); return "Deleted for good."; });
+                      }}
+                      className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 disabled:opacity-60"
+                    >
+                      Forever
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Saved snapshots">
+          <p className="text-sm text-muted">
+            A copy of every job is saved each day the app is used. Restoring puts back
+            anything that has since been deleted; jobs you still have are left untouched.
+          </p>
+          {snapshots.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">
+              None yet — the first is saved next time the app is opened with at least one job.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line">
+              {snapshots.map((snap) => (
+                <li key={snap.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{snap.id}</p>
+                    <p className="text-xs text-muted">
+                      {snap.documentCount} job{snap.documentCount === 1 ? "" : "s"} ·{" "}
+                      {formatShortDate(snap.takenAt.slice(0, 10))}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      runTask(async () => {
+                        const restored = await restoreMissingFromBackup(snap.id);
+                        refreshSnapshots();
+                        return restored
+                          ? `Put back ${restored} job${restored === 1 ? "" : "s"}.`
+                          : "Nothing was missing.";
+                      })
+                    }
+                    className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-semibold disabled:opacity-60"
+                  >
+                    Restore
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
         <Card title="Account">

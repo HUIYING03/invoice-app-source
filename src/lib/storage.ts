@@ -70,6 +70,7 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
     notes: "",
     status: "draft",
     paidDate: "",
+    deletedAt: "",
     createdAt: now,
     updatedAt: now,
   };
