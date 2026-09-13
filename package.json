@@ -1,0 +1,36 @@
+{
+  "name": "invoice-generation-app",
+  "version": "0.1.0",
+  "description": "Mobile-first invoice and quotation generator for CN Wong Renovation Company",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HUIYING03/invoice-generation-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HUIYING03/invoice-generation-app/issues"
+  },
+  "homepage": "https://github.com/HUIYING03/invoice-generation-app#readme",
+  "dependencies": {
+    "next": "^15.5.25",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  },
+  "private": true
+}

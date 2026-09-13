@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #14202e;
+  --color-muted: #5b6b7c;
+  --color-line: #dfe4ea;
+  --color-surface: #ffffff;
+  --color-canvas: #f4f6f8;
+  --color-brand: #1d4e89;
+  --color-brand-dark: #163c69;
+  --color-good: #1f7a4d;
+  --color-warn: #a35b00;
+}
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* These belong in the base layer. Unlayered rules outrank every layered
+   utility in the cascade, so an unlayered `body { color: ... }` would quietly
+   defeat text-white, text-muted and friends everywhere. */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* 16px keeps iOS Safari from zooming in when a field takes focus. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* ---------------------------------------------------------------- print --
+   Only the .print-sheet element reaches the paper. Everything else in the
+   app (navigation, forms, buttons) is hidden.                              */
+
+.print-sheet {
+  font-family: Arial, Helvetica, "Liberation Sans", sans-serif;
+  color: #000;
+  background: #fff;
+}
+
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-sheet,
+  .print-sheet * {
+    visibility: visible;
+  }
+
+  .print-sheet {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+}
