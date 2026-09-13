@@ -73,8 +73,12 @@ the network, or deploy it and skip the laptop entirely.
 
 Jobs live in **Firebase Firestore** under a single shared login, so whatever is
 typed on the phone shows up on the computer straight away, and the other way
-round. Firestore's offline cache means the app still works with no signal and
-catches up when the connection returns.
+round. Firestore's offline cache keeps an app that is **already open** working
+with no signal, and it catches up when the connection returns.
+
+Opening it fresh with no signal does not work: there is no service worker, so
+the page itself still has to be fetched. Adding one would close that gap, and
+would also get Android's full "Install app" rather than a home-screen shortcut.
 
 `src/lib/db.ts` is the only file that talks to Firestore. `src/lib/storage.ts`
 still reads the browser storage used before there was an account, so those jobs
