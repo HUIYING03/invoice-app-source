@@ -60,6 +60,11 @@ export interface InvoiceDoc {
   items: LineItem[];
   notes: string;
   status: DocStatus;
+  /**
+   * Multiplier on the printed text size, so a long job can be squeezed onto
+   * one page. 1 is the default; see MIN/MAX_FONT_SCALE in print.ts.
+   */
+  fontScale: number;
   /** ISO date the document was marked paid. Empty when unpaid. */
   paidDate: string;
   /**

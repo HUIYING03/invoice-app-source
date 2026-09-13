@@ -1,3 +1,4 @@
+import { clampFontScale } from "./print";
 import type { InvoiceDoc, LineItem } from "./types";
 
 /**
@@ -17,6 +18,7 @@ export function normalizeDocument(doc: InvoiceDoc): InvoiceDoc {
   return {
     ...doc,
     deletedAt: doc.deletedAt ?? "",
+    fontScale: clampFontScale(doc.fontScale ?? 1),
     items: Array.isArray(doc.items) ? doc.items.map(normalizeItem) : [],
   };
 }

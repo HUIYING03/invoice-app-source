@@ -68,6 +68,7 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
     jobTitle: "",
     items: [emptyItem()],
     notes: "",
+    fontScale: 1,
     status: "draft",
     paidDate: "",
     deletedAt: "",

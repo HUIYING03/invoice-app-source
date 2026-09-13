@@ -17,6 +17,8 @@ formatting and the arithmetic itself.
   fit the screen, so nothing shifts between phone, computer and paper.
 - **Print or save as PDF** with the browser's own print dialog — handy for
   sending over WhatsApp.
+- **Make a long job fit.** The preview says how many pages will come out, and a
+  text-size control pulls a job back onto one page when it nearly fits.
 - **Keep every job** in a searchable list, filterable by invoice, quotation or
   unpaid, with a running total of what is still owed.
 - **See the money** on a dashboard: invoiced, collected, outstanding and quoted;
@@ -192,6 +194,11 @@ app runs in the browser — there is no server of our own, which is why the
 Firestore rules carry the weight.
 
 ### Notes on the printed page
+
+`src/lib/print.ts` holds the A4 geometry. The sheet is authored at exactly the
+printable width (186mm = 703px at 96dpi), which is what makes the page count
+beside the preview truthful rather than an estimate — verified by printing to
+PDF at two text sizes and counting the pages that came out.
 
 `DocumentSheet` is authored at a fixed 720px — A4 (210mm) less the 12mm print
 margins, at 96dpi — rather than as a responsive layout, so the on-screen preview

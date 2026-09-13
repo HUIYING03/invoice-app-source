@@ -2,6 +2,7 @@
 
 import { amountInWords, documentTotal, formatMoney, lineAmount, unitLabel } from "@/lib/money";
 import { formatLongDate } from "@/lib/dates";
+import { BASE_FONT_PX, SHEET_WIDTH_PX, clampFontScale } from "@/lib/print";
 import type { CompanyProfile, InvoiceDoc } from "@/lib/types";
 
 /**
@@ -17,6 +18,9 @@ export default function DocumentSheet({
   doc: InvoiceDoc;
   company: CompanyProfile;
 }) {
+  // Everything inside the sheet is sized in em, so this single value scales the
+  // whole document — which is what lets a long job be squeezed onto one page.
+  const fontSize = BASE_FONT_PX * clampFontScale(doc.fontScale ?? 1);
   const total = documentTotal(doc.items);
   const heading = doc.kind === "invoice" ? "INVOICE" : "QUOTATION";
   const numberLabel = doc.kind === "invoice" ? "INV NO" : "QUO NO";
@@ -25,9 +29,12 @@ export default function DocumentSheet({
   );
 
   return (
-    <article className="print-sheet w-[720px] bg-white p-8 text-[13px] leading-snug text-black print:w-full print:p-0">
+    <article
+      className="print-sheet bg-white p-8 leading-snug text-black print:w-full print:p-0"
+      style={{ width: SHEET_WIDTH_PX, fontSize: `${fontSize}px` }}
+    >
       <header className="text-center">
-        <h1 className="text-[17px] font-bold tracking-wide sm:text-[19px]">{company.name}</h1>
+        <h1 className="text-[1.35em] font-bold tracking-wide">{company.name}</h1>
         {company.addressLine1 && <p className="mt-0.5">{company.addressLine1}</p>}
         {company.addressLine2 && <p>{company.addressLine2}</p>}
         {company.phone && <p>TEL {company.phone}</p>}
@@ -41,7 +48,7 @@ export default function DocumentSheet({
           {doc.client.addressLine3 && <p>{doc.client.addressLine3}</p>}
         </div>
         <div className="text-left">
-          <p className="text-[16px] font-bold tracking-wide">{heading}</p>
+          <p className="text-[1.25em] font-bold tracking-wide">{heading}</p>
           <p className="mt-1">Date: {formatLongDate(doc.date) || "—"}</p>
           {doc.number.trim() && (
             <p>
