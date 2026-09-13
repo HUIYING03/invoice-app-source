@@ -50,6 +50,19 @@ it; the lockfile already lists every platform.
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run check` | Typecheck, tests and build together |
 
+### Opening it on a phone
+
+`npm run dev` prints a Network URL (e.g. `http://192.168.0.5:3000`). Next blocks
+cross-origin requests to dev assets and the HMR socket, so that URL loads the
+HTML but never hydrates — the page sits on "Loading…" — unless the address is
+listed in `allowedDevOrigins` in `next.config.ts`. The `192.168.*` entries there
+cover a typical home network; if the Mac's address falls outside them, add it
+(hostname only, no `http://` and no port) and restart the dev server.
+
+For everyday use, prefer the real build over the dev server. `npm run build`
+produces `out/`, a plain static site that none of this applies to — serve it on
+the network, or deploy it and skip the laptop entirely.
+
 ## Deploying
 
 `npm run build` produces a plain static site in `out/`. There is no server and
