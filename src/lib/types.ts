@@ -1,21 +1,30 @@
 export type DocKind = "invoice" | "quotation";
 
+/**
+ * How a line is priced. This is the user's explicit choice, not something
+ * inferred from which fields happen to be filled in — otherwise clearing the
+ * quantity box to retype it would silently switch the line back to a lump sum.
+ */
+export type PricingMode = "lump" | "unit";
+
 /** Draft -> Sent -> Paid. Quotations use draft/sent/accepted-as-paid loosely. */
 export type DocStatus = "draft" | "sent" | "paid";
 
 export interface LineItem {
   id: string;
+  /** Which of the two pricing shapes below applies. */
+  pricing: PricingMode;
   /** Short heading, e.g. "R.C. GUTTER LEAKING". */
   title: string;
   /** Free-text detail lines, e.g. "Supply labour to pressure wash rc gutter...". */
   description: string;
   /** Unit of measure, e.g. "ft run", "sq ft", "nos". Optional. */
   unit: string;
-  /** Quantity. Empty string when the item is priced as a lump sum. */
+  /** Quantity. Used when `pricing` is "unit". May be blank mid-edit. */
   quantity: string;
-  /** Price per unit. Empty string when the item is priced as a lump sum. */
+  /** Price per unit. Used when `pricing` is "unit". May be blank mid-edit. */
   unitPrice: string;
-  /** Lump-sum amount, used whenever quantity and unitPrice are not both set. */
+  /** Lump-sum amount. Used when `pricing` is "lump". */
   amount: string;
 }
 

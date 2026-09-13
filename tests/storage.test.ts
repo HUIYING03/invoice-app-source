@@ -146,3 +146,28 @@ test("importing a file from somewhere else is rejected", () => {
   assert.throws(() => importBackup({ hello: "world" }), /not a backup/);
   assert.throws(() => importBackup(null), /not a backup/);
 });
+
+test("lines saved before pricing existed get the mode they were using", () => {
+  // Documents written by the previous version have no `pricing` field. The
+  // mode has to be inferred once, on load, from whichever fields were filled.
+  const doc = emptyDocument("invoice");
+  doc.client.company = "Legacy";
+  doc.items = [
+    { id: "a", title: "Lump", description: "", unit: "", quantity: "", unitPrice: "", amount: "850" },
+    { id: "b", title: "Rate", description: "", unit: "ft run", quantity: "65", unitPrice: "18.30", amount: "" },
+  ] as never;
+  saveDocument(doc);
+
+  const [lump, rate] = loadDocuments()[0].items;
+  assert.equal(lump.pricing, "lump");
+  assert.equal(rate.pricing, "unit");
+});
+
+test("an explicit pricing mode is never overwritten on load", () => {
+  const doc = emptyDocument("invoice");
+  // Per-unit, but mid-edit with the quantity cleared: must stay per-unit.
+  doc.items = [{ ...doc.items[0], pricing: "unit", quantity: "", unitPrice: "18.30" }];
+  saveDocument(doc);
+
+  assert.equal(loadDocuments()[0].items[0].pricing, "unit");
+});

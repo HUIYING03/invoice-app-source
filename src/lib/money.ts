@@ -14,13 +14,14 @@ export function round2(value: number): number {
 }
 
 /** True when the line is priced as quantity x rate rather than as a lump sum. */
-export function isMetered(item: LineItem): boolean {
-  return item.quantity.trim() !== "" && item.unitPrice.trim() !== "";
+export function isPerUnit(item: LineItem): boolean {
+  return item.pricing === "unit";
 }
 
 /** The amount a single line contributes to the total. */
 export function lineAmount(item: LineItem): number {
-  if (isMetered(item)) {
+  if (isPerUnit(item)) {
+    // A blank quantity or rate mid-edit simply contributes nothing yet.
     return round2(num(item.quantity) * num(item.unitPrice));
   }
   return round2(num(item.amount));
@@ -48,9 +49,11 @@ export function formatCurrency(value: number, code = "RM"): string {
  * Returns "" for lump-sum lines so the column stays blank, as on the paper form.
  */
 export function unitLabel(item: LineItem): string {
+  const measureOnly = item.unit.trim();
+  if (!isPerUnit(item)) return measureOnly;
   const qty = item.quantity.trim();
   const price = item.unitPrice.trim();
-  if (!qty) return item.unit.trim();
+  if (!qty) return measureOnly;
   const measure = item.unit.trim() ? ` ${item.unit.trim()}` : "";
   if (!price) return `${qty}${measure}`;
   return `${qty}${measure} @ ${formatMoney(num(price))}`;

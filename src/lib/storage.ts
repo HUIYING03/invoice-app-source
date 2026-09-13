@@ -45,6 +45,7 @@ function writeJSON(key: string, value: unknown): void {
 export function emptyItem(): LineItem {
   return {
     id: newId(),
+    pricing: "lump",
     title: "",
     description: "",
     unit: "",
@@ -72,11 +73,25 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
   };
 }
 
+/**
+ * Fills in `pricing` for lines saved before it existed, inferring the mode the
+ * user had actually chosen from whichever fields they filled in.
+ */
+function migrateItem(item: LineItem): LineItem {
+  if (item.pricing === "lump" || item.pricing === "unit") return item;
+  const looksPerUnit = item.quantity?.trim() !== "" || item.unitPrice?.trim() !== "";
+  return { ...item, pricing: looksPerUnit ? "unit" : "lump" };
+}
+
 export function loadDocuments(): InvoiceDoc[] {
   const docs = readJSON<InvoiceDoc[]>(DOCS_KEY, []);
   if (!Array.isArray(docs)) return [];
   return docs
     .filter((doc): doc is InvoiceDoc => !!doc && typeof doc.id === "string")
+    .map((doc) => ({
+      ...doc,
+      items: Array.isArray(doc.items) ? doc.items.map(migrateItem) : [],
+    }))
     .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 

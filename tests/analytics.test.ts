@@ -20,7 +20,16 @@ function doc(
     client: { company, addressLine1: "", addressLine2: "", addressLine3: "" },
     jobTitle: "",
     items: [
-      { id: `${id}-1`, title: "Work", description: "", unit: "", quantity: "", unitPrice: "", amount },
+      {
+        id: `${id}-1`,
+        pricing: "lump",
+        title: "Work",
+        description: "",
+        unit: "",
+        quantity: "",
+        unitPrice: "",
+        amount,
+      },
     ],
     notes: "",
     status,

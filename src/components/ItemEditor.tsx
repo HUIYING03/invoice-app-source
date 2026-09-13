@@ -1,7 +1,7 @@
 "use client";
 
 import { Field, TextArea, TextInput } from "@/components/ui";
-import { formatMoney, isMetered, lineAmount } from "@/lib/money";
+import { formatMoney, isPerUnit, lineAmount } from "@/lib/money";
 import type { LineItem } from "@/lib/types";
 
 /**
@@ -26,9 +26,10 @@ export default function ItemEditor({
   onRemove: () => void;
   onMove: (direction: -1 | 1) => void;
 }) {
-  const metered = isMetered(item);
-  // A half-filled quantity/rate pair still means the user intends metering.
-  const meteredMode = metered || item.quantity.trim() !== "" || item.unitPrice.trim() !== "";
+  // The mode is whatever the user picked, never inferred from the fields being
+  // empty — clearing the quantity to retype it must not change the mode.
+  const perUnit = isPerUnit(item);
+  const incomplete = perUnit && (item.quantity.trim() === "" || item.unitPrice.trim() === "");
 
   return (
     <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
@@ -70,20 +71,18 @@ export default function ItemEditor({
 
         <div className="flex gap-2 rounded-xl bg-canvas p-1">
           <ModeButton
-            active={!meteredMode}
+            active={!perUnit}
             label="One price"
-            onClick={() => onChange({ quantity: "", unitPrice: "" })}
+            onClick={() => onChange({ pricing: "lump" })}
           />
           <ModeButton
-            active={meteredMode}
+            active={perUnit}
             label="Per unit"
-            onClick={() => {
-              if (!meteredMode) onChange({ quantity: "1", amount: "" });
-            }}
+            onClick={() => onChange({ pricing: "unit" })}
           />
         </div>
 
-        {meteredMode ? (
+        {perUnit ? (
           <>
             <div className="grid grid-cols-3 gap-2">
               <Field label="Quantity">
@@ -116,7 +115,7 @@ export default function ItemEditor({
                 {currencyCode} {formatMoney(lineAmount(item))}
               </span>
             </div>
-            {!metered && (
+            {incomplete && (
               <p className="text-xs text-warn">
                 Fill in both quantity and price each, or switch back to “One price”.
               </p>
