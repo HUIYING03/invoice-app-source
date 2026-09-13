@@ -45,6 +45,19 @@
   select {
     font-size: 16px;
   }
+
+  /*
+   * iOS Safari gives input[type="date"] a native minimum width that ignores
+   * width:100%, so the field pushed out past the card it sits in. Opting out
+   * of the native control sizing makes it fill exactly the space it is given.
+   */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    text-align: left;
+  }
 }
 
 /* ---------------------------------------------------------------- print --

@@ -13,7 +13,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="mb-1 block text-sm font-medium text-muted">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
@@ -22,7 +22,7 @@ export function Field({
 }
 
 const controlClass =
-  "w-full rounded-xl border border-line bg-white px-3 py-3 text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "block w-full min-w-0 max-w-full rounded-xl border border-line bg-white px-3 py-3 text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   const { className = "", ...rest } = props;
