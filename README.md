@@ -28,10 +28,19 @@ step with the figures above them.
 
 ## Running it
 
+Needs **Node 20.9 or newer** (Next 16 refuses to build on anything older, and the
+test runner's `--import` flag needs >= 18.19). With nvm:
+
 ```bash
+nvm use         # reads .nvmrc
 npm install
 npm run dev     # http://localhost:3000
 ```
+
+If the build stops with `Cannot find native binding`, npm skipped Tailwind's
+platform-specific binary ([npm#4828](https://github.com/npm/cli/issues/4828)) —
+older npm versions do this. `rm -rf node_modules && npm ci` with npm 10+ fixes
+it; the lockfile already lists every platform.
 
 | Script | What it does |
 | --- | --- |
