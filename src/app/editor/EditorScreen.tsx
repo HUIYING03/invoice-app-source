@@ -9,7 +9,7 @@ import SheetScaler from "@/components/SheetScaler";
 import ItemEditor from "@/components/ItemEditor";
 import { Card, Field, STATUS_LABELS, TextArea, TextInput } from "@/components/ui";
 import { documentTotal, formatCurrency } from "@/lib/money";
-import { formatLongDate, todayISO } from "@/lib/dates";
+import { todayISO } from "@/lib/dates";
 import {
   deleteDocument,
   duplicateDocument,
@@ -299,7 +299,9 @@ function EditForm({
               roughly 140px, and below that the year is clipped by the calendar
               icon. */}
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
-            <Field label="Date" hint={formatLongDate(doc.date) || undefined}>
+            {/* No hint here: iOS renders this input as "13 Sep 2026" already,
+                so echoing the long form underneath just reads as a duplicate. */}
+            <Field label="Date">
               <TextInput
                 type="date"
                 value={doc.date}
