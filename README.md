@@ -139,6 +139,11 @@ The app is a static site, so it can go anywhere. On Vercel:
 
 On a phone, open the URL and use **Add to Home Screen** for an app icon.
 
+**Printing on iPhone:** iOS silently blocks `window.print()` inside home-screen
+web apps — the dialog simply never appears. The app detects that case and offers
+an "Open in Safari" button, where printing works normally. Everything else works
+fine from the home-screen app; it is only printing that is affected.
+
 ### Changing the icon
 
 `src/app/icon.svg` is the source. The PNGs beside it and under `public/` are
