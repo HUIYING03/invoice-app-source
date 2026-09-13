@@ -9,7 +9,7 @@ import SheetScaler from "@/components/SheetScaler";
 import ItemEditor from "@/components/ItemEditor";
 import { Card, Field, STATUS_LABELS, TextArea, TextInput } from "@/components/ui";
 import { documentTotal, formatCurrency } from "@/lib/money";
-import { todayISO } from "@/lib/dates";
+import { formatLongDate, todayISO } from "@/lib/dates";
 import {
   deleteDocument,
   duplicateDocument,
@@ -295,15 +295,18 @@ function EditForm({
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Date">
+          {/* Side by side only when there is room: a native date input needs
+              roughly 140px, and below that the year is clipped by the calendar
+              icon. */}
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+            <Field label="Date" hint={formatLongDate(doc.date) || undefined}>
               <TextInput
                 type="date"
                 value={doc.date}
                 onChange={(event) => update({ date: event.target.value || todayISO() })}
               />
             </Field>
-            <Field label="Number">
+            <Field label="Number" hint="Counts up on its own.">
               <TextInput
                 value={doc.number}
                 onChange={(event) => update({ number: event.target.value })}
