@@ -258,7 +258,7 @@ export default function EditorScreen() {
               naturalHeight={sheetHeight}
               onChange={(fontScale) => update({ fontScale })}
             />
-            <div className="rounded-2xl border border-line bg-white p-2 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
+            <div className="rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
               <SheetScaler onNaturalHeight={setSheetHeight}>
                 <DocumentSheet doc={doc} company={company} />
               </SheetScaler>

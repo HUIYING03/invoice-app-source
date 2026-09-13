@@ -197,6 +197,15 @@ Built with Next.js (static export), React, Tailwind CSS and Firebase. The whole
 app runs in the browser — there is no server of our own, which is why the
 Firestore rules carry the weight.
 
+### The browser's own header and footer
+
+Browsers print the page URL, title, date and page numbers into the paper
+margin. That is a **print-dialog setting, not something the page controls**:
+
+- **Chrome** — More settings → untick *Headers and footers*
+- **Safari (Mac)** — Show Details → untick *Print headers and footers*
+- **iPhone** — no toggle; use Save as PDF and it is generally left out
+
 ### Notes on the printed page
 
 `src/lib/print.ts` holds the A4 geometry. The sheet is authored at exactly the

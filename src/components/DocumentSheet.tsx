@@ -30,7 +30,11 @@ export default function DocumentSheet({
 
   return (
     <article
-      className="print-sheet bg-white p-8 leading-snug text-black print:w-full print:p-0"
+      // No padding here, deliberately: the sheet *is* the printable content
+      // box, so it must measure the same on screen as on paper. The page's
+      // margins come from @page; the breathing room in the preview comes from
+      // the card around it.
+      className="print-sheet bg-white leading-snug text-black print:w-full"
       style={{ width: SHEET_WIDTH_PX, fontSize: `${fontSize}px` }}
     >
       <header className="text-center">
