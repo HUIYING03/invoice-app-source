@@ -22,6 +22,7 @@ function doc(
     items: [
       {
         id: `${id}-1`,
+        level: 0,
         pricing: "lump",
         title: "Work",
         description: "",
@@ -36,6 +37,9 @@ function doc(
     paidDate: status === "paid" ? date : "",
     deletedAt: "",
     fontScale: 1,
+    sectionSpacing: 1,
+    itemSpacing: 1,
+    topSpace: 0,
     createdAt: date,
     updatedAt: date,
   };

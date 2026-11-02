@@ -16,6 +16,7 @@ import type { LineItem } from "../src/lib/types.ts";
 function item(patch: Partial<LineItem> = {}): LineItem {
   return {
     id: "x",
+    level: 0,
     pricing: "lump",
     title: "",
     description: "",

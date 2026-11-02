@@ -37,6 +37,50 @@ export function clampFontScale(scale: number): number {
 }
 
 /**
+ * Extra breathing room on the sheet, as multipliers of the default spacing.
+ * A short job can be spread out so it does not sit cramped at the top of the
+ * page; a long one can be tightened to pull it back onto one page.
+ *
+ * - section spacing: the gaps between the blocks (header, client, table, words,
+ *   note, signature)
+ * - item spacing: the padding around each line in the item table
+ */
+export const MIN_SPACING = 0.5;
+export const MAX_SPACING = 4;
+export const SPACING_STEP = 0.25;
+
+export function clampSpacing(scale: number): number {
+  if (!Number.isFinite(scale)) return 1;
+  const stepped = Math.round(scale / SPACING_STEP) * SPACING_STEP;
+  return Math.min(MAX_SPACING, Math.max(MIN_SPACING, Number(stepped.toFixed(2))));
+}
+
+/**
+ * Extra empty space above the company header, in millimetres, on top of the
+ * printer's own margin. Moves the whole document down the page — useful when
+ * a short job would otherwise hug the top edge.
+ */
+export const MAX_TOP_SPACE_MM = 60;
+export const TOP_SPACE_STEP_MM = 5;
+
+export function clampTopSpace(valueMm: number): number {
+  if (!Number.isFinite(valueMm)) return 0;
+  const stepped = Math.round(valueMm / TOP_SPACE_STEP_MM) * TOP_SPACE_STEP_MM;
+  return Math.min(MAX_TOP_SPACE_MM, Math.max(0, stepped));
+}
+
+/** Millimetres to the CSS pixels the sheet is authored in. */
+export function mmToPx(valueMm: number): number {
+  return mm(valueMm);
+}
+
+/** How much of one page the content fills, as a whole percentage. */
+export function pageFill(contentHeightPx: number): number {
+  if (!Number.isFinite(contentHeightPx) || contentHeightPx <= 0) return 0;
+  return Math.round((contentHeightPx / PAGE_CONTENT_HEIGHT_PX) * 100);
+}
+
+/**
  * How many A4 pages content of this height needs. Heights are measured from
  * the sheet at its authored width, so this matches what the printer does.
  */

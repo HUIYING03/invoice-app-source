@@ -47,6 +47,7 @@ function writeJSON(key: string, value: unknown): void {
 export function emptyItem(): LineItem {
   return {
     id: newId(),
+    level: 0,
     pricing: "lump",
     title: "",
     description: "",
@@ -69,6 +70,9 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
     items: [emptyItem()],
     notes: "",
     fontScale: 1,
+    sectionSpacing: 1,
+    itemSpacing: 1,
+    topSpace: 0,
     status: "draft",
     paidDate: "",
     deletedAt: "",

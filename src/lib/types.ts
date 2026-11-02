@@ -8,10 +8,18 @@ export type DocKind = "invoice" | "quotation";
 export type PricingMode = "lump" | "unit";
 
 /** Draft -> Sent -> Paid. Quotations use draft/sent/accepted-as-paid loosely. */
+/** 0 = item, 1 = sub-item, 2 = sub-sub-item. See src/lib/items.ts. */
+export type ItemLevel = 0 | 1 | 2;
+
 export type DocStatus = "draft" | "sent" | "paid";
 
 export interface LineItem {
   id: string;
+  /**
+   * How deeply this line is nested. Items are a flat list; a line belongs to
+   * the nearest line above it with a smaller level. Printed as 1. / a. / i.
+   */
+  level: ItemLevel;
   /** Which of the two pricing shapes below applies. */
   pricing: PricingMode;
   /** Short heading, e.g. "R.C. GUTTER LEAKING". */
@@ -65,6 +73,15 @@ export interface InvoiceDoc {
    * one page. 1 is the default; see MIN/MAX_FONT_SCALE in print.ts.
    */
   fontScale: number;
+  /**
+   * Multiplier on the gaps between the blocks of the printed sheet (header,
+   * client, table, note, signature). 1 is the default; see clampSpacing.
+   */
+  sectionSpacing: number;
+  /** Multiplier on the padding around each line in the item table. */
+  itemSpacing: number;
+  /** Extra space above the company header, in mm. 0 is the default. */
+  topSpace: number;
   /** ISO date the document was marked paid. Empty when unpaid. */
   paidDate: string;
   /**

@@ -199,3 +199,39 @@ test("an explicit pricing mode is never overwritten on load", () => {
 
   assert.equal(loadDocuments()[0].items[0].pricing, "unit");
 });
+
+test("lines saved before sub-items existed load as top-level items", () => {
+  const doc = emptyDocument("invoice");
+  doc.items = [
+    { id: "a", pricing: "lump", title: "Old", description: "", unit: "", quantity: "", unitPrice: "", amount: "1" },
+  ] as never;
+  saveDocument(doc);
+
+  assert.equal(loadDocuments()[0].items[0].level, 0);
+});
+
+test("sub-item levels survive a save and load", () => {
+  const doc = emptyDocument("invoice");
+  doc.items = [
+    { ...doc.items[0], id: "a", level: 0 },
+    { ...doc.items[0], id: "b", level: 1 },
+    { ...doc.items[0], id: "c", level: 2 },
+  ];
+  saveDocument(doc);
+
+  assert.deepEqual(loadDocuments()[0].items.map((item) => item.level), [0, 1, 2]);
+});
+
+test("jobs saved before spacing existed load with the default layout", () => {
+  const doc = emptyDocument("invoice");
+  const legacy = { ...doc } as Partial<typeof doc>;
+  delete legacy.sectionSpacing;
+  delete legacy.itemSpacing;
+  delete legacy.topSpace;
+  saveDocument(legacy as typeof doc);
+
+  const loaded = loadDocuments()[0];
+  assert.equal(loaded.sectionSpacing, 1);
+  assert.equal(loaded.itemSpacing, 1);
+  assert.equal(loaded.topSpace, 0);
+});

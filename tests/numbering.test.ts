@@ -17,6 +17,9 @@ function doc(number: string, deletedAt = ""): InvoiceDoc {
     paidDate: "",
     deletedAt,
     fontScale: 1,
+    sectionSpacing: 1,
+    itemSpacing: 1,
+    topSpace: 0,
     createdAt: "",
     updatedAt: "",
   };

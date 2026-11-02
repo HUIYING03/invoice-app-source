@@ -5,7 +5,12 @@ import {
   MIN_FONT_SCALE,
   PAGE_CONTENT_HEIGHT_PX,
   SHEET_WIDTH_PX,
+  MAX_SPACING,
+  MIN_SPACING,
   clampFontScale,
+  clampSpacing,
+  clampTopSpace,
+  pageFill,
   pageCount,
 } from "../src/lib/print.ts";
 
@@ -54,4 +59,23 @@ test("the text scale snaps to whole steps, so the percentage stays tidy", () => 
 test("a missing or nonsense scale falls back to normal size", () => {
   assert.equal(clampFontScale(Number.NaN), 1);
   assert.equal(clampFontScale(Number.POSITIVE_INFINITY), 1);
+});
+
+test("spacing snaps to its step and stays within range", () => {
+  assert.equal(clampSpacing(1.3), 1.25);
+  assert.equal(clampSpacing(0), MIN_SPACING);
+  assert.equal(clampSpacing(99), MAX_SPACING);
+  assert.equal(clampSpacing(Number.NaN), 1);
+});
+
+test("page fill reports how much of one page is used", () => {
+  assert.equal(pageFill(PAGE_CONTENT_HEIGHT_PX / 2), 50);
+  assert.equal(pageFill(0), 0);
+});
+
+test("top space snaps to 5mm steps between 0 and 60mm", () => {
+  assert.equal(clampTopSpace(12), 10);
+  assert.equal(clampTopSpace(-5), 0);
+  assert.equal(clampTopSpace(500), 60);
+  assert.equal(clampTopSpace(Number.NaN), 0);
 });
