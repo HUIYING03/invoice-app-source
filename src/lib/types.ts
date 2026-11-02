@@ -73,6 +73,13 @@ export interface InvoiceDoc {
    * one page. 1 is the default; see MIN/MAX_FONT_SCALE in print.ts.
    */
   fontScale: number;
+  /**
+   * Multiplier on the gaps between the blocks of the printed sheet (header,
+   * client, table, note, signature). 1 is the default; see clampSpacing.
+   */
+  sectionSpacing: number;
+  /** Multiplier on the padding around each line in the item table. */
+  itemSpacing: number;
   /** ISO date the document was marked paid. Empty when unpaid. */
   paidDate: string;
   /**

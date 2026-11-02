@@ -19,8 +19,10 @@ formatting and the arithmetic itself.
   fit the screen, so nothing shifts between phone, computer and paper.
 - **Print or save as PDF** with the browser's own print dialog — handy for
   sending over WhatsApp.
-- **Make a long job fit.** The preview says how many pages will come out, and a
-  text-size control pulls a job back onto one page when it nearly fits.
+- **Make the page look right.** The preview says how many pages will come out
+  and how full the page is. Text size, the space between sections and the space
+  between items can each be adjusted per job — spread a short job out so it is
+  not cramped at the top, or tighten a long one back onto one page.
 - **Keep every job** in a searchable list, filterable by invoice, quotation or
   unpaid, with a running total of what is still owed.
 - **See the money** on a dashboard: invoiced, collected, outstanding and quoted;

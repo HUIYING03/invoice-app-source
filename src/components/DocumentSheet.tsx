@@ -3,7 +3,7 @@
 import { amountInWords, documentTotal, formatMoney, lineAmount, unitLabel } from "@/lib/money";
 import { formatLongDate } from "@/lib/dates";
 import { fixLevels, hasChildren, itemNumbers, levelOf } from "@/lib/items";
-import { BASE_FONT_PX, SHEET_WIDTH_PX, clampFontScale } from "@/lib/print";
+import { BASE_FONT_PX, SHEET_WIDTH_PX, clampFontScale, clampSpacing } from "@/lib/print";
 import type { CompanyProfile, InvoiceDoc } from "@/lib/types";
 
 /**
@@ -22,6 +22,12 @@ export default function DocumentSheet({
   // Everything inside the sheet is sized in em, so this single value scales the
   // whole document — which is what lets a long job be squeezed onto one page.
   const fontSize = BASE_FONT_PX * clampFontScale(doc.fontScale ?? 1);
+  // Spacing is in px at 1x — the same gaps the sheet always had — and is
+  // stretched or tightened by the user's layout setting.
+  const sectionScale = clampSpacing(doc.sectionSpacing ?? 1);
+  const itemScale = clampSpacing(doc.itemSpacing ?? 1);
+  const gap = (px: number) => ({ marginTop: `${px * sectionScale}px` });
+  const rowPad = (px: number) => ({ paddingTop: `${px * itemScale}px`, paddingBottom: `${px * itemScale}px` });
   const total = documentTotal(doc.items);
   const heading = doc.kind === "invoice" ? "INVOICE" : "QUOTATION";
   const numberLabel = doc.kind === "invoice" ? "INV NO" : "QUO NO";
@@ -50,7 +56,7 @@ export default function DocumentSheet({
         {company.phone && <p>TEL {company.phone}</p>}
       </header>
 
-      <div className="mt-6 flex flex-wrap items-start justify-between gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-6" style={gap(24)}>
         <div className="min-w-[45%]">
           <p className="font-bold">{doc.client.company || "—"}</p>
           {doc.client.addressLine1 && <p>{doc.client.addressLine1}</p>}
@@ -68,7 +74,7 @@ export default function DocumentSheet({
         </div>
       </div>
 
-      <table className="mt-5 w-full border-collapse border border-black">
+      <table className="w-full border-collapse border border-black" style={gap(20)}>
         <thead>
           <tr>
             <th className="border border-black px-2 py-1 text-center font-normal">ITEM</th>
@@ -84,7 +90,10 @@ export default function DocumentSheet({
         <tbody>
           {doc.jobTitle.trim() && (
             <tr className="print-avoid-break">
-              <td className="border-x border-black px-2 pt-2 font-bold uppercase">
+              <td
+                className="border-x border-black px-2 font-bold uppercase"
+                style={{ paddingTop: `${8 * itemScale}px` }}
+              >
                 {doc.jobTitle.trim()}
               </td>
               {/* Empty cells keep the column rules running the full table height. */}
@@ -99,13 +108,14 @@ export default function DocumentSheet({
             // A heading over priced sub-items, or an unpriced sub-point, leaves
             // the amount column blank rather than printing 0.00.
             const blankAmount = amount === 0 && (level > 0 || hasChildren(visibleItems, index));
+            const pad = rowPad(level === 0 ? 8 : 4);
             const title = item.title.trim();
             const description = item.description.trim();
             return (
               <tr key={item.id} className="print-avoid-break align-top">
                 <td
-                  className={`border-x border-black px-2 ${level === 0 ? "py-2" : "py-1"}`}
-                  style={level > 0 ? { paddingLeft: `${0.5 + level * 1.5}em` } : undefined}
+                  className="border-x border-black px-2"
+                  style={level > 0 ? { ...pad, paddingLeft: `${0.5 + level * 1.5}em` } : pad}
                 >
                   {title && (
                     <p className={level === 0 ? "font-semibold" : "font-medium"}>
@@ -120,12 +130,10 @@ export default function DocumentSheet({
                     </p>
                   )}
                 </td>
-                <td className={`border-x border-black px-2 text-center ${level === 0 ? "py-2" : "py-1"}`}>
+                <td className="border-x border-black px-2 text-center" style={pad}>
                   {unitLabel(item)}
                 </td>
-                <td
-                  className={`border-x border-black px-2 text-right tabular-nums ${level === 0 ? "py-2" : "py-1"}`}
-                >
+                <td className="border-x border-black px-2 text-right tabular-nums" style={pad}>
                   {blankAmount ? "" : formatMoney(amount)}
                 </td>
               </tr>
@@ -133,10 +141,10 @@ export default function DocumentSheet({
           })}
 
           {/* Blank tail row, so the ruled box keeps the shape of the paper form. */}
-          <tr>
-            <td className="h-6 border-x border-b border-black" />
-            <td className="h-6 border-x border-b border-black" />
-            <td className="h-6 border-x border-b border-black" />
+          <tr style={{ height: `${24 * itemScale}px` }}>
+            <td className="border-x border-b border-black" />
+            <td className="border-x border-b border-black" />
+            <td className="border-x border-b border-black" />
           </tr>
 
           <tr className="print-avoid-break">
@@ -149,10 +157,10 @@ export default function DocumentSheet({
         </tbody>
       </table>
 
-      <p className="mt-3 font-semibold">{amountInWords(total, company.currencyWord)}</p>
+      <p className="font-semibold" style={gap(12)}>{amountInWords(total, company.currencyWord)}</p>
 
       {(company.bankAccount || company.bankName) && (
-        <section className="mt-5 print-avoid-break">
+        <section className="print-avoid-break" style={gap(20)}>
           <p className="font-semibold">Note:</p>
           <p>
             *All cheque shall be crossed with &ldquo;A/C PAYEE ONLY&rdquo; and made payable to{" "}
@@ -167,12 +175,12 @@ export default function DocumentSheet({
       )}
 
       {doc.notes.trim() && (
-        <section className="mt-4 whitespace-pre-line print-avoid-break">{doc.notes.trim()}</section>
+        <section className="whitespace-pre-line print-avoid-break" style={gap(16)}>{doc.notes.trim()}</section>
       )}
 
-      <footer className="mt-10 print-avoid-break">
+      <footer className="print-avoid-break" style={gap(40)}>
         <p>For {company.name}</p>
-        <div className="mt-10 w-56 border-t border-black pt-1">
+        <div className="w-56 border-t border-black pt-1" style={gap(40)}>
           {company.signatureName && <p>{company.signatureName}</p>}
         </div>
       </footer>

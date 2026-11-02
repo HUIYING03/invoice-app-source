@@ -462,6 +462,7 @@ InvoiceDoc {
   jobTitle,                 // bold heading above the items
   items: LineItem[],
   notes, status: "draft" | "sent" | "paid", paidDate,
+  fontScale, sectionSpacing, itemSpacing,  // print layout multipliers, 1 = default
   createdAt, updatedAt
 }
 

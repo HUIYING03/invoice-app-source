@@ -70,6 +70,8 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
     items: [emptyItem()],
     notes: "",
     fontScale: 1,
+    sectionSpacing: 1,
+    itemSpacing: 1,
     status: "draft",
     paidDate: "",
     deletedAt: "",

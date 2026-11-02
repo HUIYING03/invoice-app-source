@@ -221,3 +221,15 @@ test("sub-item levels survive a save and load", () => {
 
   assert.deepEqual(loadDocuments()[0].items.map((item) => item.level), [0, 1, 2]);
 });
+
+test("jobs saved before spacing existed load with the default layout", () => {
+  const doc = emptyDocument("invoice");
+  const legacy = { ...doc } as Partial<typeof doc>;
+  delete legacy.sectionSpacing;
+  delete legacy.itemSpacing;
+  saveDocument(legacy as typeof doc);
+
+  const loaded = loadDocuments()[0];
+  assert.equal(loaded.sectionSpacing, 1);
+  assert.equal(loaded.itemSpacing, 1);
+});

@@ -1,5 +1,5 @@
 import { fixLevels, levelOf } from "./items";
-import { clampFontScale } from "./print";
+import { clampFontScale, clampSpacing } from "./print";
 import type { InvoiceDoc, LineItem } from "./types";
 
 /**
@@ -22,6 +22,8 @@ export function normalizeDocument(doc: InvoiceDoc): InvoiceDoc {
     ...doc,
     deletedAt: doc.deletedAt ?? "",
     fontScale: clampFontScale(doc.fontScale ?? 1),
+    sectionSpacing: clampSpacing(doc.sectionSpacing ?? 1),
+    itemSpacing: clampSpacing(doc.itemSpacing ?? 1),
     items: Array.isArray(doc.items) ? fixLevels(doc.items.map(normalizeItem)) : [],
   };
 }

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppHeader from "@/components/AppHeader";
 import DocumentSheet from "@/components/DocumentSheet";
 import PrintNotice from "@/components/PrintNotice";
-import TextSizeControl from "@/components/TextSizeControl";
+import LayoutControl from "@/components/LayoutControl";
 import SheetScaler from "@/components/SheetScaler";
 import ItemEditor from "@/components/ItemEditor";
 import { Card, Field, STATUS_LABELS, TextArea, TextInput } from "@/components/ui";
@@ -256,10 +256,10 @@ export default function EditorScreen() {
               On a phone, choose “Save as PDF” in the print dialog to send it by WhatsApp.
             </p>
             <PrintNotice />
-            <TextSizeControl
-              value={doc.fontScale}
+            <LayoutControl
+              value={doc}
               naturalHeight={sheetHeight}
-              onChange={(fontScale) => update({ fontScale })}
+              onChange={update}
             />
             <div className="rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
               <SheetScaler onNaturalHeight={setSheetHeight}>

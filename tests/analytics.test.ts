@@ -37,6 +37,8 @@ function doc(
     paidDate: status === "paid" ? date : "",
     deletedAt: "",
     fontScale: 1,
+    sectionSpacing: 1,
+    itemSpacing: 1,
     createdAt: date,
     updatedAt: date,
   };
