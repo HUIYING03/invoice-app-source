@@ -1,3 +1,4 @@
+import { fixLevels, levelOf } from "./items";
 import { clampFontScale } from "./print";
 import type { InvoiceDoc, LineItem } from "./types";
 
@@ -6,7 +7,9 @@ import type { InvoiceDoc, LineItem } from "./types";
  * an older release — on a device, in a backup file, or in Firestore — loads
  * with the shape the app expects.
  */
-function normalizeItem(item: LineItem): LineItem {
+function normalizeItem(raw: LineItem): LineItem {
+  // Written before sub-items existed: every line was a top-level item.
+  const item = raw.level === levelOf(raw) ? raw : { ...raw, level: levelOf(raw) };
   if (item.pricing === "lump" || item.pricing === "unit") return item;
   // Written before `pricing` existed: recover the mode the user had chosen
   // from whichever fields they filled in.
@@ -19,6 +22,6 @@ export function normalizeDocument(doc: InvoiceDoc): InvoiceDoc {
     ...doc,
     deletedAt: doc.deletedAt ?? "",
     fontScale: clampFontScale(doc.fontScale ?? 1),
-    items: Array.isArray(doc.items) ? doc.items.map(normalizeItem) : [],
+    items: Array.isArray(doc.items) ? fixLevels(doc.items.map(normalizeItem)) : [],
   };
 }

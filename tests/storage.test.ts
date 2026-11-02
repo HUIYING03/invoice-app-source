@@ -199,3 +199,25 @@ test("an explicit pricing mode is never overwritten on load", () => {
 
   assert.equal(loadDocuments()[0].items[0].pricing, "unit");
 });
+
+test("lines saved before sub-items existed load as top-level items", () => {
+  const doc = emptyDocument("invoice");
+  doc.items = [
+    { id: "a", pricing: "lump", title: "Old", description: "", unit: "", quantity: "", unitPrice: "", amount: "1" },
+  ] as never;
+  saveDocument(doc);
+
+  assert.equal(loadDocuments()[0].items[0].level, 0);
+});
+
+test("sub-item levels survive a save and load", () => {
+  const doc = emptyDocument("invoice");
+  doc.items = [
+    { ...doc.items[0], id: "a", level: 0 },
+    { ...doc.items[0], id: "b", level: 1 },
+    { ...doc.items[0], id: "c", level: 2 },
+  ];
+  saveDocument(doc);
+
+  assert.deepEqual(loadDocuments()[0].items.map((item) => item.level), [0, 1, 2]);
+});

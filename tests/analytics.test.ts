@@ -22,6 +22,7 @@ function doc(
     items: [
       {
         id: `${id}-1`,
+        level: 0,
         pricing: "lump",
         title: "Work",
         description: "",

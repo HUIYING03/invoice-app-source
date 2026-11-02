@@ -15,6 +15,18 @@ import { todayISO } from "@/lib/dates";
 import { useData } from "@/components/DataProvider";
 import { emptyDocument, emptyItem, newId } from "@/lib/storage";
 import { suggestNumberFrom } from "@/lib/numbering";
+import {
+  canIndent,
+  canMove,
+  canOutdent,
+  groupTotal,
+  hasChildren,
+  insertChild,
+  itemNumbers,
+  moveItem,
+  removeItem,
+  shiftLevel,
+} from "@/lib/items";
 import type { CompanyProfile, DocKind, DocStatus, InvoiceDoc, LineItem } from "@/lib/types";
 
 type Tab = "edit" | "preview";
@@ -89,15 +101,10 @@ export default function EditorScreen() {
     setDirty(true);
   }, []);
 
-  const moveItem = useCallback((index: number, direction: -1 | 1) => {
-    setDoc((current) => {
-      if (!current) return current;
-      const target = index + direction;
-      if (target < 0 || target >= current.items.length) return current;
-      const items = [...current.items];
-      [items[index], items[target]] = [items[target], items[index]];
-      return { ...current, items };
-    });
+  // Every change to the item list goes through here, so structural edits
+  // (move, indent, add, remove) all work on the latest list.
+  const editItems = useCallback((change: (items: LineItem[]) => LineItem[]) => {
+    setDoc((current) => (current ? { ...current, items: change(current.items) } : current));
     setDirty(true);
   }, []);
 
@@ -199,11 +206,7 @@ export default function EditorScreen() {
             company={company}
             update={update}
             updateItem={updateItem}
-            moveItem={moveItem}
-            onAddItem={() => update({ items: [...doc.items, emptyItem()] })}
-            onRemoveItem={(itemId) =>
-              update({ items: doc.items.filter((item) => item.id !== itemId) })
-            }
+            editItems={editItems}
             onDuplicate={async () => {
               if (dirty) {
                 showToast("Save first, then make a copy.");
@@ -297,9 +300,7 @@ function EditForm({
   company,
   update,
   updateItem,
-  moveItem,
-  onAddItem,
-  onRemoveItem,
+  editItems,
   onDuplicate,
   onDelete,
 }: {
@@ -307,12 +308,11 @@ function EditForm({
   company: CompanyProfile;
   update: (patch: Partial<InvoiceDoc>) => void;
   updateItem: (itemId: string, patch: Partial<LineItem>) => void;
-  moveItem: (index: number, direction: -1 | 1) => void;
-  onAddItem: () => void;
-  onRemoveItem: (itemId: string) => void;
+  editItems: (change: (items: LineItem[]) => LineItem[]) => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const numbers = itemNumbers(doc.items);
   return (
     <div className="space-y-4 pb-28">
       <Card title="Document">
@@ -428,22 +428,38 @@ function EditForm({
       </Card>
 
       <div className="space-y-3">
-        <h2 className="px-1 text-base font-semibold">Items</h2>
+        <div className="px-1">
+          <h2 className="text-base font-semibold">Items</h2>
+          <p className="text-xs text-muted">
+            Use the side arrows to turn a line into a sub-item (a.) or sub-sub-item (i.), or back.
+          </p>
+        </div>
         {doc.items.map((item, index) => (
           <ItemEditor
             key={item.id}
             item={item}
-            index={index}
+            number={numbers[index]}
             currencyCode={company.currencyCode}
             canRemove={doc.items.length > 1}
+            canMoveUp={canMove(doc.items, index, -1)}
+            canMoveDown={canMove(doc.items, index, 1)}
+            canIndent={canIndent(doc.items, index)}
+            canOutdent={canOutdent(doc.items, index)}
+            groupTotal={hasChildren(doc.items, index) ? groupTotal(doc.items, index) : null}
             onChange={(patch) => updateItem(item.id, patch)}
-            onRemove={() => onRemoveItem(item.id)}
-            onMove={(direction) => moveItem(index, direction)}
+            onRemove={() => editItems((items) => removeItem(items, items.indexOf(item)))}
+            onMove={(direction) => editItems((items) => moveItem(items, items.indexOf(item), direction))}
+            onShiftLevel={(delta) =>
+              editItems((items) => shiftLevel(items, items.indexOf(item), delta))
+            }
+            onAddChild={() =>
+              editItems((items) => insertChild(items, items.indexOf(item), emptyItem()))
+            }
           />
         ))}
         <button
           type="button"
-          onClick={onAddItem}
+          onClick={() => editItems((items) => [...items, emptyItem()])}
           className="w-full rounded-2xl border-2 border-dashed border-line bg-white py-4 text-sm font-semibold text-brand transition active:scale-[0.99]"
         >
           + Add another item

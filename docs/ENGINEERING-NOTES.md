@@ -155,7 +155,7 @@ Never stored, always computed:
 - line totals (`quantity × unitPrice`)
 - the document total
 - the amount in words (`Ringgit Malaysia: Eight Thousand Five Hundred Fifty Only`)
-- the item numbers `1,` `2,` `3,` on the printed page
+- the item numbers `1.` `a.` `i.` on the printed page
 - the next document number (`023/2026` → `024/2026`)
 
 The reason is not elegance. It is that **stored duplicates drift**. If the total
@@ -467,6 +467,7 @@ InvoiceDoc {
 
 LineItem {
   id,
+  level: 0 | 1 | 2,         // item / sub-item / sub-sub-item, see src/lib/items.ts
   pricing: "lump" | "unit", // §D6 — the user's explicit choice
   title, description, unit,
   quantity, unitPrice,      // used when pricing === "unit"

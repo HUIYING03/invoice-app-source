@@ -47,6 +47,7 @@ function writeJSON(key: string, value: unknown): void {
 export function emptyItem(): LineItem {
   return {
     id: newId(),
+    level: 0,
     pricing: "lump",
     title: "",
     description: "",

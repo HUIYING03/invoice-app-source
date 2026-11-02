@@ -12,7 +12,9 @@ formatting and the arithmetic itself.
 
 - **Write a job** on a phone: client, address, date, number, and any number of
   items. Each item can be a lump sum (`RM 1,980.00`) or a rate
-  (`65 ft run @ 18.30`), which the app multiplies out.
+  (`65 ft run @ 18.30`), which the app multiplies out. Any line can be made a
+  sub-item (`a.`) or sub-sub-item (`i.`) of the line above it, and changed back
+  at any time with the side arrows; every priced line counts toward the total.
 - **Preview exactly what prints.** The preview is the A4 page itself, scaled to
   fit the screen, so nothing shifts between phone, computer and paper.
 - **Print or save as PDF** with the browser's own print dialog — handy for

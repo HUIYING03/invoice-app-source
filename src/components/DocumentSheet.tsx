@@ -2,6 +2,7 @@
 
 import { amountInWords, documentTotal, formatMoney, lineAmount, unitLabel } from "@/lib/money";
 import { formatLongDate } from "@/lib/dates";
+import { fixLevels, hasChildren, itemNumbers, levelOf } from "@/lib/items";
 import { BASE_FONT_PX, SHEET_WIDTH_PX, clampFontScale } from "@/lib/print";
 import type { CompanyProfile, InvoiceDoc } from "@/lib/types";
 
@@ -24,9 +25,14 @@ export default function DocumentSheet({
   const total = documentTotal(doc.items);
   const heading = doc.kind === "invoice" ? "INVOICE" : "QUOTATION";
   const numberLabel = doc.kind === "invoice" ? "INV NO" : "QUO NO";
-  const visibleItems = doc.items.filter(
-    (item) => item.title.trim() || item.description.trim() || lineAmount(item) !== 0,
+  // Blank lines are left off the page; re-check the nesting afterwards so a
+  // sub-item whose blank parent was dropped still numbers sensibly.
+  const visibleItems = fixLevels(
+    doc.items.filter(
+      (item) => item.title.trim() || item.description.trim() || lineAmount(item) !== 0,
+    ),
   );
+  const numbers = itemNumbers(visibleItems);
 
   return (
     <article
@@ -87,24 +93,44 @@ export default function DocumentSheet({
             </tr>
           )}
 
-          {visibleItems.map((item, index) => (
-            <tr key={item.id} className="print-avoid-break align-top">
-              <td className="border-x border-black px-2 py-2">
-                {item.title.trim() && (
-                  <p className="font-semibold">
-                    {index + 1}, {item.title.trim()}
-                  </p>
-                )}
-                {item.description.trim() && (
-                  <p className="whitespace-pre-line">{item.description.trim()}</p>
-                )}
-              </td>
-              <td className="border-x border-black px-2 py-2 text-center">{unitLabel(item)}</td>
-              <td className="border-x border-black px-2 py-2 text-right tabular-nums">
-                {formatMoney(lineAmount(item))}
-              </td>
-            </tr>
-          ))}
+          {visibleItems.map((item, index) => {
+            const level = levelOf(item);
+            const amount = lineAmount(item);
+            // A heading over priced sub-items, or an unpriced sub-point, leaves
+            // the amount column blank rather than printing 0.00.
+            const blankAmount = amount === 0 && (level > 0 || hasChildren(visibleItems, index));
+            const title = item.title.trim();
+            const description = item.description.trim();
+            return (
+              <tr key={item.id} className="print-avoid-break align-top">
+                <td
+                  className={`border-x border-black px-2 ${level === 0 ? "py-2" : "py-1"}`}
+                  style={level > 0 ? { paddingLeft: `${0.5 + level * 1.5}em` } : undefined}
+                >
+                  {title && (
+                    <p className={level === 0 ? "font-semibold" : "font-medium"}>
+                      {numbers[index]} {title}
+                    </p>
+                  )}
+                  {description && (
+                    <p className="whitespace-pre-line">
+                      {/* Untitled sub-points still need their a. / i. label. */}
+                      {!title && level > 0 ? `${numbers[index]} ` : ""}
+                      {description}
+                    </p>
+                  )}
+                </td>
+                <td className={`border-x border-black px-2 text-center ${level === 0 ? "py-2" : "py-1"}`}>
+                  {unitLabel(item)}
+                </td>
+                <td
+                  className={`border-x border-black px-2 text-right tabular-nums ${level === 0 ? "py-2" : "py-1"}`}
+                >
+                  {blankAmount ? "" : formatMoney(amount)}
+                </td>
+              </tr>
+            );
+          })}
 
           {/* Blank tail row, so the ruled box keeps the shape of the paper form. */}
           <tr>
