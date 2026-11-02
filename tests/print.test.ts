@@ -9,6 +9,7 @@ import {
   MIN_SPACING,
   clampFontScale,
   clampSpacing,
+  clampTopSpace,
   pageFill,
   pageCount,
 } from "../src/lib/print.ts";
@@ -70,4 +71,11 @@ test("spacing snaps to its step and stays within range", () => {
 test("page fill reports how much of one page is used", () => {
   assert.equal(pageFill(PAGE_CONTENT_HEIGHT_PX / 2), 50);
   assert.equal(pageFill(0), 0);
+});
+
+test("top space snaps to 5mm steps between 0 and 60mm", () => {
+  assert.equal(clampTopSpace(12), 10);
+  assert.equal(clampTopSpace(-5), 0);
+  assert.equal(clampTopSpace(500), 60);
+  assert.equal(clampTopSpace(Number.NaN), 0);
 });

@@ -463,6 +463,7 @@ InvoiceDoc {
   items: LineItem[],
   notes, status: "draft" | "sent" | "paid", paidDate,
   fontScale, sectionSpacing, itemSpacing,  // print layout multipliers, 1 = default
+  topSpace,                 // extra mm above the header, 0 = default
   createdAt, updatedAt
 }
 

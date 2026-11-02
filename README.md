@@ -20,7 +20,7 @@ formatting and the arithmetic itself.
 - **Print or save as PDF** with the browser's own print dialog — handy for
   sending over WhatsApp.
 - **Make the page look right.** The preview says how many pages will come out
-  and how full the page is. Text size, the space between sections and the space
+  and how full the page is. Text size, the space at the top, between sections and
   between items can each be adjusted per job — spread a short job out so it is
   not cramped at the top, or tighten a long one back onto one page.
 - **Keep every job** in a searchable list, filterable by invoice, quotation or

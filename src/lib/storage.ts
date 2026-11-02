@@ -72,6 +72,7 @@ export function emptyDocument(kind: InvoiceDoc["kind"] = "invoice"): InvoiceDoc 
     fontScale: 1,
     sectionSpacing: 1,
     itemSpacing: 1,
+    topSpace: 0,
     status: "draft",
     paidDate: "",
     deletedAt: "",

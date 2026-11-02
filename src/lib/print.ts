@@ -55,6 +55,25 @@ export function clampSpacing(scale: number): number {
   return Math.min(MAX_SPACING, Math.max(MIN_SPACING, Number(stepped.toFixed(2))));
 }
 
+/**
+ * Extra empty space above the company header, in millimetres, on top of the
+ * printer's own margin. Moves the whole document down the page — useful when
+ * a short job would otherwise hug the top edge.
+ */
+export const MAX_TOP_SPACE_MM = 60;
+export const TOP_SPACE_STEP_MM = 5;
+
+export function clampTopSpace(valueMm: number): number {
+  if (!Number.isFinite(valueMm)) return 0;
+  const stepped = Math.round(valueMm / TOP_SPACE_STEP_MM) * TOP_SPACE_STEP_MM;
+  return Math.min(MAX_TOP_SPACE_MM, Math.max(0, stepped));
+}
+
+/** Millimetres to the CSS pixels the sheet is authored in. */
+export function mmToPx(valueMm: number): number {
+  return mm(valueMm);
+}
+
 /** How much of one page the content fills, as a whole percentage. */
 export function pageFill(contentHeightPx: number): number {
   if (!Number.isFinite(contentHeightPx) || contentHeightPx <= 0) return 0;

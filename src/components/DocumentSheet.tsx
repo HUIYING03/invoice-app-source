@@ -3,7 +3,14 @@
 import { amountInWords, documentTotal, formatMoney, lineAmount, unitLabel } from "@/lib/money";
 import { formatLongDate } from "@/lib/dates";
 import { fixLevels, hasChildren, itemNumbers, levelOf } from "@/lib/items";
-import { BASE_FONT_PX, SHEET_WIDTH_PX, clampFontScale, clampSpacing } from "@/lib/print";
+import {
+  BASE_FONT_PX,
+  SHEET_WIDTH_PX,
+  clampFontScale,
+  clampSpacing,
+  clampTopSpace,
+  mmToPx,
+} from "@/lib/print";
 import type { CompanyProfile, InvoiceDoc } from "@/lib/types";
 
 /**
@@ -47,7 +54,13 @@ export default function DocumentSheet({
       // margins come from @page; the breathing room in the preview comes from
       // the card around it.
       className="print-sheet bg-white leading-snug text-black print:w-full"
-      style={{ width: SHEET_WIDTH_PX, fontSize: `${fontSize}px` }}
+      style={{
+        width: SHEET_WIDTH_PX,
+        fontSize: `${fontSize}px`,
+        // Padding, not margin, so the space is part of the measured sheet and
+        // the page count still tells the truth.
+        paddingTop: `${mmToPx(clampTopSpace(doc.topSpace ?? 0))}px`,
+      }}
     >
       <header className="text-center">
         <h1 className="text-[1.35em] font-bold tracking-wide">{company.name}</h1>

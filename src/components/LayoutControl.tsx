@@ -7,8 +7,11 @@ import {
   MIN_FONT_SCALE,
   MIN_SPACING,
   SPACING_STEP,
+  MAX_TOP_SPACE_MM,
+  TOP_SPACE_STEP_MM,
   clampFontScale,
   clampSpacing,
+  clampTopSpace,
   pageCount,
   pageFill,
 } from "@/lib/print";
@@ -17,6 +20,7 @@ export interface LayoutSettings {
   fontScale: number;
   sectionSpacing: number;
   itemSpacing: number;
+  topSpace: number;
 }
 
 /**
@@ -42,11 +46,16 @@ export default function LayoutControl({
   const fontScale = clampFontScale(value.fontScale);
   const sectionSpacing = clampSpacing(value.sectionSpacing);
   const itemSpacing = clampSpacing(value.itemSpacing);
+  const topSpace = clampTopSpace(value.topSpace);
   const pages = pageCount(naturalHeight);
   const fill = pageFill(naturalHeight);
-  const atDefaults = fontScale === 1 && sectionSpacing === 1 && itemSpacing === 1;
+  const atDefaults =
+    fontScale === 1 && sectionSpacing === 1 && itemSpacing === 1 && topSpace === 0;
   const atTightest =
-    fontScale <= MIN_FONT_SCALE && sectionSpacing <= MIN_SPACING && itemSpacing <= MIN_SPACING;
+    fontScale <= MIN_FONT_SCALE &&
+    sectionSpacing <= MIN_SPACING &&
+    itemSpacing <= MIN_SPACING &&
+    topSpace === 0;
 
   return (
     <div className="no-print rounded-2xl border border-line bg-white p-3 shadow-sm">
@@ -72,6 +81,16 @@ export default function LayoutControl({
           onChange={(v) => onChange({ fontScale: clampFontScale(v) })}
         />
         <Stepper
+          label="Space at top"
+          hint="Moves the company name, and all below it, down"
+          value={topSpace}
+          min={0}
+          max={MAX_TOP_SPACE_MM}
+          step={TOP_SPACE_STEP_MM}
+          format={(v) => `${v} mm`}
+          onChange={(v) => onChange({ topSpace: clampTopSpace(v) })}
+        />
+        <Stepper
           label="Space between sections"
           hint="Header, client, table, note, signature"
           value={sectionSpacing}
@@ -95,12 +114,14 @@ export default function LayoutControl({
 
       {pages === 1 && naturalHeight > 0 && fill < 70 && (
         <p className="mt-2 text-xs text-muted">
-          Plenty of room left. Add space between sections or items to spread it out.
+          Plenty of room left. Add space at the top, between sections or between items to
+          spread it out.
         </p>
       )}
       {pages > 1 && !atTightest && (
         <p className="mt-2 text-xs text-warn">
-          Make the text smaller or the spacing tighter to pull it back to one page.
+          Make the text smaller, the spacing tighter or the top space less to pull it back to
+          one page.
         </p>
       )}
       {pages > 1 && atTightest && (
@@ -111,7 +132,7 @@ export default function LayoutControl({
       {!atDefaults && (
         <button
           type="button"
-          onClick={() => onChange({ fontScale: 1, sectionSpacing: 1, itemSpacing: 1 })}
+          onClick={() => onChange({ fontScale: 1, sectionSpacing: 1, itemSpacing: 1, topSpace: 0 })}
           className="mt-2 text-xs font-semibold text-brand"
         >
           Reset layout

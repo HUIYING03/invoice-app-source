@@ -80,6 +80,8 @@ export interface InvoiceDoc {
   sectionSpacing: number;
   /** Multiplier on the padding around each line in the item table. */
   itemSpacing: number;
+  /** Extra space above the company header, in mm. 0 is the default. */
+  topSpace: number;
   /** ISO date the document was marked paid. Empty when unpaid. */
   paidDate: string;
   /**
